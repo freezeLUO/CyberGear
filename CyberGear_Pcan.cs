@@ -10,7 +10,7 @@ using Peak.Can.Basic;
 using Peak.Can.Basic.BackwardCompatibility;
 
 
-namespace CyberGear_Pan
+namespace CyberGear_Pcan
 {
 
     public class CANMotorController
