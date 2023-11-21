@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Peak.Can.Basic;
 using Peak.Can.Basic.BackwardCompatibility;
 using Peak;
-using CyberGear_Pan;
+using CyberGear_Pcan;
 
 
 namespace Myspace
