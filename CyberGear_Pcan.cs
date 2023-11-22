@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -75,16 +75,16 @@ namespace CyberGear_Pcan
         private int TWO_BYTES_BITS = 16;
         private uint MOTOR_ID;
         private uint MAIN_CAN_ID;
-        private double P_MIN;
-        private double P_MAX;
-        private double V_MIN;
-        private double V_MAX;
-        private double T_MIN;
-        private double T_MAX;
-        private double KP_MIN;
-        private double KP_MAX;
-        private double KD_MIN;
-        private double KD_MAX;
+        private float P_MIN;
+        private float P_MAX;
+        private float V_MIN;
+        private float V_MAX;
+        private float T_MIN;
+        private float T_MAX;
+        private float KP_MIN;
+        private float KP_MAX;
+        private float KD_MIN;
+        private float KD_MAX;
         private PcanChannel channel;
 
 
@@ -92,16 +92,16 @@ namespace CyberGear_Pcan
         {
             this.MOTOR_ID = motor_id;
             this.MAIN_CAN_ID = main_can_id;
-            this.P_MIN = -12.5;
-            this.P_MAX = 12.5;
-            this.V_MIN = -30.0;
-            this.V_MAX = 30.0;
-            this.T_MIN = -12.0;
-            this.T_MAX = 12.0;
-            this.KP_MIN = 0.0;
-            this.KP_MAX = 500.0;
-            this.KD_MIN = 0.0;
-            this.KD_MAX = 5.0;
+            this.P_MIN = -12.5F;
+            this.P_MAX = 12.5F;
+            this.V_MIN = -30.0F;
+            this.V_MAX = 30.0F;
+            this.T_MIN = -12.0F;
+            this.T_MAX = 12.0F;
+            this.KP_MIN = 0.0F;
+            this.KP_MAX = 500.0F;
+            this.KD_MIN = 0.0F;
+            this.KD_MAX = 5.0F;
             this.TWO_BYTES_BITS = 16;
             this.channel = channel;//PcanChannel.Usb01;
         }
@@ -130,12 +130,12 @@ namespace CyberGear_Pcan
             CURRENT_MODE = 3     // 电流模式
         }
 
-        public uint FloatToUInt(double x, double x_min, double x_max, int bits)
+        public uint FloatToUInt(float x, float x_min, float x_max, int bits)
         {
             // 将浮点数转换为无符号整数。
 
-            double span = x_max - x_min;
-            double offset = x_min;
+            float span = x_max - x_min;
+            float offset = x_min;
 
             // Clamp x to the range [x_min, x_max]
             x = Math.Max(Math.Min(x, x_max), x_min);
@@ -143,29 +143,29 @@ namespace CyberGear_Pcan
             return (uint)((x - offset) * ((1 << bits) - 1) / span);
         }
 
-        public double UIntToFloat(uint x, double x_min, double x_max, int bits)
+        public float UIntToFloat(uint x, float x_min, float x_max, int bits)
         {
             // 将无符号整数转换为浮点数。
 
             int span = (1 << bits) - 1;
-            double offset = x_max - x_min;
+            float offset = x_max - x_min;
 
             // Clamp x to the range [0, span]
             x = (uint)Math.Max(Math.Min(x, span), 0);
 
-            double a = offset * x / span + x_min;
+            float a = offset * x / span + x_min;
 
             return a;
         }
 
-        public int LinearMapping(double value, double value_min, double value_max, int target_min = 0, int target_max = 65535)
+        public uint LinearMapping(double value, double value_min, double value_max, int target_min = 0, int target_max = 65535)
         {
             // 对输入值进行线性映射。
 
-            return (int)((value - value_min) / (value_max - value_min) * (target_max - target_min) + target_min);
+            return (uint)((value - value_min) / (value_max - value_min) * (target_max - target_min) + target_min);
         }
 
-        public List<byte> FormatData(int value, string format = "f", string type = "decode")
+        public List<byte> FormatData(float value, string format = "f", string type = "decode")
         {
             /*
             对数据进行编码或解码。
@@ -178,9 +178,9 @@ namespace CyberGear_Pcan
             返回:
             编码或解码后的数据。
             */
-            if(format == "f")
+            if (format == "f")
             {
-                object[] s_f = { 4, "f" };
+                //object[] s_f = { 4, "f" };
                 float floatValue = (float)value;
                 byte[] bs = BitConverter.GetBytes(floatValue);
                 List<byte> rdata = new List<byte>();
@@ -192,9 +192,9 @@ namespace CyberGear_Pcan
 
                 return rdata;
             }
-            else if(format == "u8") 
+            else if (format == "u8")
             {
-                object[] s_f = { 1, "B" };
+                //object[] s_f = { 1, "B" };
                 byte byteValue = (byte)value;
                 byte[] bs = new byte[] { byteValue };
                 bs = bs.Concat(Enumerable.Repeat((byte)0, 3)).ToArray();
@@ -210,16 +210,16 @@ namespace CyberGear_Pcan
             else { return new List<byte>(); }
 
         }
-
-        public List<byte> PackTo8Bytes(double targetAngle, double targetVelocity, double Kp, double Kd)
+        /*
+        public List<byte> PackTo8Bytes(float targetAngle, float targetVelocity, float Kp, float Kd)
         {
             // 定义打包数据函数，将控制参数打包为8字节的数据。
 
             // 对输入变量进行线性映射
-            double targetAngleMapped = LinearMapping(targetAngle, P_MIN, P_MAX);
-            double targetVelocityMapped = LinearMapping(targetVelocity, V_MIN, V_MAX);
-            double KpMapped = LinearMapping(Kp, KP_MIN, KP_MAX);
-            double KdMapped = LinearMapping(Kd, KD_MIN, KD_MAX);
+            float targetAngleMapped = LinearMapping(targetAngle, P_MIN, P_MAX);
+            float targetVelocityMapped = LinearMapping(targetVelocity, V_MIN, V_MAX);
+            float KpMapped = LinearMapping(Kp, KP_MIN, KP_MAX);
+            float KdMapped = LinearMapping(Kd, KD_MIN, KD_MAX);
 
             // 使用BitConverter进行打包，类似struct.pack(python)
             List<byte> data1 = new List<byte>();
@@ -231,20 +231,20 @@ namespace CyberGear_Pcan
             return data1;
 
         }
+        */
 
 
 
-
-        public Tuple<byte[], uint> SendReceiveCanMessage(uint cmdMode, uint data2, byte[] data1, uint timeout = 200)//data2 is MAIN_CAN_ID
+        public Tuple<byte[], uint> SendReceiveCanMessage(uint cmdMode, uint date2, byte[] data1, uint timeout = 200)
         {
             // Calculate the arbitration ID
-            uint arbitrationId = (cmdMode << 24) | (data2 << 8) | this.MOTOR_ID;
+            uint arbitrationId = (cmdMode << 24) | (date2 << 8) | this.MOTOR_ID;
 
             // Create a TPCANMsg CAN message structure
             PcanMessage canMessage = new PcanMessage
             {
                 ID = arbitrationId,
-                MsgType = MessageType.Extended,  
+                MsgType = MessageType.Extended,
                 DLC = Convert.ToByte(data1.Length),
                 Data = data1
             };
@@ -286,7 +286,7 @@ namespace CyberGear_Pcan
 
         }
 
-        public Tuple<byte, double, double, double> ParseReceivedMsg(byte[] data, uint arbitration_id)
+        public Tuple<byte, float, float, float> ParseReceivedMsg(byte[] data, uint arbitration_id)
         {
             //解析接收到的CAN消息。
 
@@ -303,31 +303,31 @@ namespace CyberGear_Pcan
                 // 解析电机CAN ID
                 byte motor_can_id = (byte)((arbitration_id >> 8) & 0xFF);
 
-                //double pos = UIntToFloat(
+                //float pos = UIntTofloat(
                 //    (ushort)((data[0] << 8) + data[1]), this.P_MIN, this.P_MAX, this.TWO_BYTES_BITS);
 
-                double pos = UIntToFloat(
+                float pos = UIntToFloat(
                     (uint)((data[0] << 8) + data[1]), this.P_MIN, this.P_MAX, this.TWO_BYTES_BITS);
 
-                double vel = UIntToFloat(
+                float vel = UIntToFloat(
                     (uint)((data[2] << 8) + data[3]), this.V_MIN, this.V_MAX, this.TWO_BYTES_BITS);
-                double torque = UIntToFloat(
+                float torque = UIntToFloat(
                     (uint)((data[4] << 8) + data[5]), this.T_MIN, this.T_MAX, TWO_BYTES_BITS);
 
                 Debug.WriteLine($"Motor CAN ID: {motor_can_id}, pos: {pos:.2f} rad, vel: {vel:.2f} rad/s, torque: {torque:.2f} Nm");
 
-                return new Tuple<byte, double, double, double>(motor_can_id, pos, vel, torque);
+                return new Tuple<byte, float, float, float>(motor_can_id, pos, vel, torque);
             }
             else
             {
                 Debug.WriteLine("No message received within the timeout period.");
-                return new Tuple<byte, double, double, double>(0, 0, 0, 0);
+                return new Tuple<byte, float, float, float>(0, 0, 0, 0);
             }
         }
 
         public void ClearCanRx(int timeout = 10)
         {
-            double timeoutSeconds = timeout / 1000.0; // Convert to seconds
+            float timeoutSeconds = timeout / 1000.0F; // Convert to seconds
             while (true)
             {
                 PcanMessage receivedMsg;
@@ -344,7 +344,7 @@ namespace CyberGear_Pcan
             }
         }
 
-        public Tuple<byte, double, double, double> WriteSingleParam(uint index, int value, string format = "f")
+        public Tuple<byte, float, float, float> WriteSingleParam(uint index, float value, string format = "f")
         {
             //写入单个参数。  PARAMETERS\RunMods
 
@@ -359,9 +359,9 @@ namespace CyberGear_Pcan
             List<byte> encodedData = FormatData(value, format, "encode");
             byte[] data1 = BitConverter.GetBytes(index).Concat(encodedData).ToArray();
 
-            ClearCanRx(); 
+            ClearCanRx();
 
-            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.SINGLE_PARAM_WRITE, MAIN_CAN_ID, data1);
+            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.SINGLE_PARAM_WRITE, this.MAIN_CAN_ID, data1);
 
             byte[] received_msg_dat = receivedMsg.Item1;
             uint received_msg_arbitration_id = receivedMsg.Item2;
@@ -372,12 +372,12 @@ namespace CyberGear_Pcan
             }
             else
             {
-                return new Tuple<byte, double, double, double>(0, 0, 0, 0);
+                return new Tuple<byte, float, float, float>(0, 0, 0, 0);
             }
 
         }
 
-        public Tuple<byte, double, double, double> Disable()
+        public Tuple<byte, float, float, float> Disable()
         {
             //停止运行电机。
 
@@ -385,7 +385,7 @@ namespace CyberGear_Pcan
             //解析后的接收消息。
             ClearCanRx();
             byte[] data1 = { 0, 0, 0, 0, 0, 0, 0, 0 };
-            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.MOTOR_STOP, MAIN_CAN_ID, data1);
+            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.MOTOR_STOP, this.MAIN_CAN_ID, data1);
             byte[] received_msg_dat = receivedMsg.Item1;
             uint received_msg_arbitration_id = receivedMsg.Item2;
             if (receivedMsg != null)
@@ -394,19 +394,19 @@ namespace CyberGear_Pcan
             }
             else
             {
-                return new Tuple<byte, double, double, double>(0, 0, 0, 0);
+                return new Tuple<byte, float, float, float>(0, 0, 0, 0);
             }
         }
 
-        public Tuple<byte, double, double, double> Enable()
+        public Tuple<byte, float, float, float> Enable()
         {
             //使能运行电机。
 
             //返回:
             //解析后的接收消息。
             ClearCanRx();
-            byte[] data1 = {};
-            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.MOTOR_ENABLE, MAIN_CAN_ID, data1);
+            byte[] data1 = { };
+            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.MOTOR_ENABLE, this.MAIN_CAN_ID, data1);
             byte[] received_msg_dat = receivedMsg.Item1;
             uint received_msg_arbitration_id = receivedMsg.Item2;
             if (receivedMsg != null)
@@ -415,19 +415,19 @@ namespace CyberGear_Pcan
             }
             else
             {
-                return new Tuple<byte, double, double, double>(0, 0, 0, 0);
+                return new Tuple<byte, float, float, float>(0, 0, 0, 0);
             }
         }
 
-        public Tuple<byte, double, double, double> Set0()
+        public Tuple<byte, float, float, float> Set0()
         {
             //设置电机的机械零点。
 
             //返回:
             //解析后的接收消息。
             ClearCanRx();
-            byte[] data1 = {1};
-            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.SET_MECHANICAL_ZERO, MAIN_CAN_ID, data1);
+            byte[] data1 = { 1 };
+            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(CmdModes.SET_MECHANICAL_ZERO, this.MAIN_CAN_ID, data1);
             byte[] received_msg_dat = receivedMsg.Item1;
             uint received_msg_arbitration_id = receivedMsg.Item2;
             if (receivedMsg != null)
@@ -436,9 +436,71 @@ namespace CyberGear_Pcan
             }
             else
             {
-                return new Tuple<byte, double, double, double>(0, 0, 0, 0);
+                return new Tuple<byte, float, float, float>(0, 0, 0, 0);
             }
         }
+
+        public void SetMotorPositionControl(float limit_spd, float loc_ref)
+        {
+            //位置控制
+
+            WriteSingleParam(0x7017, limit_spd);
+            WriteSingleParam(0x7016, loc_ref);
+        }
+
+        public Tuple<byte, float, float, float> SendMotorControlCommand(float torque, float target_angle, float target_velocity, float Kp, float Kd)
+        {
+            //运控模式下发送电机控制指令。
+
+            //参数:
+            //torque: 扭矩。
+            //target_angle: 目标角度。
+            //target_velocity: 目标速度。
+            //Kp: 比例增益。
+            //Kd: 导数增益。
+
+            //生成29位的仲裁ID的组成部分
+            uint cmd_mode = CmdModes.MOTOR_CONTROL;
+            uint torque_mapped = LinearMapping(torque, -12.0F, 12.0F);
+            uint data2 = torque_mapped;
+
+            //将实际值映射到消息值
+            //float min_abgle = -4 * Math.PI;
+            uint target_angle_mapped = LinearMapping(target_angle, -4 * Math.PI, 4 * Math.PI);
+            uint target_velocity_mapped = LinearMapping(target_velocity, -30.0F, 30.0F);
+            uint Kp_mapped = LinearMapping(Kp, 0.0F, 500.0F);
+            uint Kd_mapped = LinearMapping(Kd, 0.0F, 5.0F);
+
+            //创建8字节的数据区
+            byte[] data1_bytes = new byte[8];
+            Array.Copy(BitConverter.GetBytes(target_angle_mapped), 0, data1_bytes, 0, 2);
+            Array.Copy(BitConverter.GetBytes(target_velocity_mapped), 0, data1_bytes, 2, 2);
+            Array.Copy(BitConverter.GetBytes(Kp_mapped), 0, data1_bytes, 4, 2);
+            Array.Copy(BitConverter.GetBytes(Kd_mapped), 0, data1_bytes, 6, 2);
+            List<byte> data1 = new List<byte>();
+
+            //for (int j = 0; j < data1_bytes.Length; j++)
+            //{
+            //    data1.Add(data1_bytes[j]);
+            //}
+
+            //send canmessage
+            Tuple<byte[], uint> receivedMsg = SendReceiveCanMessage(cmd_mode, data2, data1_bytes);
+
+            byte[] received_msg_dat = receivedMsg.Item1;
+            uint received_msg_arbitration_id = receivedMsg.Item2;
+
+            if (receivedMsg != null)
+            {
+                return ParseReceivedMsg(received_msg_dat, received_msg_arbitration_id);
+            }
+            else
+            {
+                return new Tuple<byte, float, float, float>(0, 0, 0, 0);
+            }
+
+        }
+        
     }
 }
 
