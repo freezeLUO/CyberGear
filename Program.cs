@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -61,7 +61,7 @@ namespace Myspace
                 //设置 `limit_spd` 参数为预设最大速度指令
                 //- index(Byte0~1): `limit_spd`, 0x7017
                 //- value(Byte4~7): `float` [0,30]rad / s
-                int value1 = 3;
+                float value1 = 3.1F;
                 Console.ReadKey();
                 Console.WriteLine("写入速度");
                 motor.WriteSingleParam(0x7017, value1);
@@ -74,7 +74,7 @@ namespace Myspace
                 //int value2 = 1;
                 Console.ReadKey();
                 Console.WriteLine("写入转到位置1");
-                motor.WriteSingleParam(0x7016, 1);
+                motor.WriteSingleParam(0x7016, 1.1F);
                 System.Threading.Thread.Sleep(50);
 
                 Console.ReadKey();
@@ -86,6 +86,18 @@ namespace Myspace
                 Console.WriteLine("写入转到位置0");
                 motor.WriteSingleParam(0x7016, 0);
                 System.Threading.Thread.Sleep(50);
+
+                //Console.ReadKey();
+                //Console.WriteLine("写入运控模式");
+                //motor.WriteSingleParam(index, 0, "u8");
+                //System.Threading.Thread.Sleep(50);
+                //Console.ReadKey();
+                //Console.WriteLine("写入转到位置x1");
+                //motor.SendMotorControlCommand(-11F, 0.1F, -29F, 1F, 1F);
+                //Console.ReadKey();
+                //Console.WriteLine("写入转到位置x2");
+                //motor.SendMotorControlCommand(-11F, 0, -29F, 1F, 1F);
+
 
                 Console.WriteLine("按任意键停止电机");
                 Console.ReadKey(); // 等待用户按下任意键
