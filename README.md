@@ -1,5 +1,6 @@
 # CyberGear
-小米Cybergear电机C#开发  
+小米Cybergear电机C#开发
+使用PCAN-USB请去PEAK官网下载驱动：https://peak-system.com.cn/driver/  
 安装PEAK公司的Peak.Can.Basic  
 using Peak.Can.Basic  
 B站视频:   
