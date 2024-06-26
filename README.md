@@ -1,4 +1,4 @@
-#即将完全重构啦，敬请期待！届时消息都收发也将改为异步操作来最大化提升效率！
+# 开始完全重构啦，请到Pre分支查看，现在开始使用独立线程与异步来接受消息啦，效率提升！
 # CyberGear
 小米Cybergear电机C#开发  
 使用PCAN-USB请去PEAK官网下载驱动：https://peak-system.com.cn/driver/  
