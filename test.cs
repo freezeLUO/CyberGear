@@ -1,95 +1,111 @@
-﻿using Peak.Can.Basic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-namespace Test
+using Peak.Can.Basic;
+using System.Diagnostics;
+using System.Threading.Tasks;
+namespace CyberGear_Control_.NET
 {
-    internal class test
+    public class Test
     {
-        private static void ReadExample()
+        public static void Main(string[] args)
         {
+            // 初始化PCAN通道
             PcanChannel channel = PcanChannel.Usb01;
-
-            // The hardware represented by the given handle is initialized with 500 kBit/s bit rate (BTR0/BTR1 0x001C)
-            //
-            PcanStatus result = Api.Initialize(channel, Bitrate.Pcan500);
+            // 硬件以1000k bit/s初始化
+            PcanStatus result = Api.Initialize(channel, Bitrate.Pcan1000);
             if (result != PcanStatus.OK)
             {
-                // An error occurred
-                //
+                // 发生错误
                 Api.GetErrorText(result, out var errorText);
-                Console.WriteLine(errorText);
+                Debug.WriteLine(errorText);
             }
             else
             {
-                // A success message on connection is shown.
-                //
-                Console.WriteLine($"The hardware represented by the handle {channel} was successfully initialized.");
-
-                // Wait some time to get messages stored in the reception queue of the Channel
-                //
-                Console.WriteLine("The reception queue will be read out after 1 second...");
-                System.Threading.Thread.Sleep(1000);
-
-                // Messages are read and processed until the reception queue is empty
-                //
-                PcanMessage msg;
-                do
+                // 初始化成功
+                Debug.WriteLine($"通道{channel}表示的硬件已成功初始化");
+                // 创建接收器实例
+                PcanReceiver receiver = new PcanReceiver(channel);
+                if (receiver.Start())
                 {
-                    result = Api.Read(channel, out msg);
-                    if (result == PcanStatus.OK)
-                    {
-                        // Process the received message
-                        // 
-                        ProcessMessage(msg);
-                    }
-                    else
-                    {
-                        if ((result & PcanStatus.ReceiveQueueEmpty) != PcanStatus.ReceiveQueueEmpty)
-                        {
-                            // An unexpected error occurred
-                            //
-                            Api.GetErrorText(result, out var errorText);
-                            Console.WriteLine("Reading process canceled due to unexpected error: " + errorText);
-                            break;
-                        }
-                    }
-
-                } while ((result & PcanStatus.ReceiveQueueEmpty) != PcanStatus.ReceiveQueueEmpty);
-
-                // The connection to the hardware is finalized when it is no longer needed
-                //
-                result = Api.Uninitialize(channel);
-                if (result != PcanStatus.OK)
-                {
-                    // An error occurred
-                    //
-                    Api.GetErrorText(result, out var errorText);
-                    Console.WriteLine(errorText);
+                    Debug.WriteLine("接收器已启动，如果需要结束接收器进程，请调用receiver.Stop()函数");
                 }
                 else
-                    Console.WriteLine($"The hardware represented by the handle {channel} was successfully finalized.");
+                {
+                    Debug.WriteLine("接收器启动失败。");
+                }
+
+                var Motor = new Controller(127, 0, channel);
+
+                /////////////////////////////////////////////////////////////////////////////////////
+                //以下为测试代码
+                ////////////////////////////////////////////////////////////////////////////////////
+                //设置机械零点
+                Console.WriteLine("写入设置0点");
+                Console.ReadKey();
+                Motor.SetMechanicalZero();
+
+                //位置模式
+                //发送电机模式参数写入命令（通信类型 18）
+                //设置 `runmode` 参数为 1
+                //- index(Byte0~1): `run_mode`，0x7005
+                //- value(Byte4~7): 1(位置模式)
+                uint index = 0x7005;
+                byte value = 1;
+                Console.ReadKey();
+                Console.WriteLine("写入位置模式");
+                Motor.WriteSingleParam(index, value);
+                Console.ReadKey();
+                Console.WriteLine("写入启动");
+                Motor.EnableMotor();
+                //设置最大速度：发送电机模式参数写入命令（通信类型 18）
+                //设置 `limit_spd` 参数为预设最大速度指令
+                //- index(Byte0~1): `limit_spd`, 0x7017
+                //- value(Byte4~7): `float` [0,30]rad / s
+                float value1 = 3.1F;
+                Console.ReadKey();
+                Console.WriteLine("写入速度");
+                index = 0x7017;
+                Motor.WriteSingleParam(index, value1);
+                //设置目标位置：发送电机模式参数写入命令（通信类型 18）
+                //设置 `loc_ref` 参数为预设位置指令
+                //- index(Byte0~1): `loc_ref`, 0x7016
+                //- value(Byte4~7): `float` rad
+                //int value2 = 1;
+                Console.ReadKey();
+                Console.WriteLine("写入转到位置1");
+                index = 0x7016;
+                Motor.WriteSingleParam(index, 1.1F);
+
+                Console.ReadKey();
+                Console.WriteLine("写入转到位置2");
+                Motor.WriteSingleParam(index, 2.0F);
+
+                Console.ReadKey();
+                Console.WriteLine("写入转到位置0");
+                Motor.WriteSingleParam(index, 0.0F);
+                ///////////////////////////////////////////////////
+                //运控模式示例
+                ///////////////////////////////////////////////////
+                Console.ReadKey();
+                index = 0x7005;
+                Console.WriteLine("写入运控模式");
+                Motor.WriteSingleParam(index, 0);
+                Console.ReadKey();
+                Console.WriteLine("写入转到位置x1");
+                Motor.SendMotorControlCommand(2.0F, 4.0F, 2.0F, 10.0F, 1.0F);
+                Console.ReadKey();
+                Console.WriteLine("写入转到位置0");
+                Motor.SendMotorControlCommand(2.0F, 0.0F, 2.0F, 10.0F, 1.0F);
             }
+
         }
 
-        // Formats a CAN frame as string and writes it to the console output
-        //
-        private static void ProcessMessage(PcanMessage msg)
-        {
-            string msgText = $"Type: {msg.MsgType} | ";
-            if ((msg.MsgType & MessageType.Extended) == MessageType.Extended)
-                msgText += $"ID: {msg.ID:X8} | ";
-            else
-                msgText += $"ID: {msg.ID:X4} | ";
-            msgText += $"Length: {msg.Length} | ";
-            msgText += $"Data: ";
-            for (int i = 0; i < msg.Length; i++)
-                msgText += $"{msg.Data[i]} ";
+          // 接收线程，用于处理接收到的CAN消息
 
-            Console.WriteLine(msgText);
-        }
     }
+
+    
 }

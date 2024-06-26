@@ -1,0 +1,17 @@
+D:\Programming\C#\CyberGear_Control_.NET\bin\Debug\net6.0\CyberGear_Control_.NET.exe
+D:\Programming\C#\CyberGear_Control_.NET\bin\Debug\net6.0\CyberGear_Control_.NET.deps.json
+D:\Programming\C#\CyberGear_Control_.NET\bin\Debug\net6.0\CyberGear_Control_.NET.runtimeconfig.json
+D:\Programming\C#\CyberGear_Control_.NET\bin\Debug\net6.0\CyberGear_Control_.NET.dll
+D:\Programming\C#\CyberGear_Control_.NET\bin\Debug\net6.0\CyberGear_Control_.NET.pdb
+D:\Programming\C#\CyberGear_Control_.NET\bin\Debug\net6.0\PCANBasic.NET.dll
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.csproj.AssemblyReference.cache
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.GeneratedMSBuildEditorConfig.editorconfig
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.AssemblyInfoInputs.cache
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.AssemblyInfo.cs
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.csproj.CoreCompileInputs.cache
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.csproj.CopyComplete
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.dll
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\refint\CyberGear_Control_.NET.dll
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.pdb
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\CyberGear_Control_.NET.genruntimeconfig.cache
+D:\Programming\C#\CyberGear_Control_.NET\obj\Debug\net6.0\ref\CyberGear_Control_.NET.dll
