@@ -82,7 +82,7 @@
           "System.Xml.XDocument": "4.3.0"
         }
       },
-      "Peak.PCANBasic.NET/4.9.0.942": {
+      "Peak.PCANBasic.NET/4.8.0.830": {
         "type": "package",
         "dependencies": {
           "NETStandard.Library": "1.6.1"
@@ -1384,10 +1384,10 @@
         "netstandard.library.nuspec"
       ]
     },
-    "Peak.PCANBasic.NET/4.9.0.942": {
-      "sha512": "Z2Iw3PEzsATeRA6hirSJfXVjdAHIxMs5J+celRQLSfvhRxmTpforhOwkWjo0iwTiC3HXRosyE+zzcG72Yt20jA==",
+    "Peak.PCANBasic.NET/4.8.0.830": {
+      "sha512": "cJ1A02ANnH7oyxNKdz/+gOr5j5wxTIIbIl7MGcBhq9YZFfuBwdI4I9wD7Kxtsan2brRdebGOOgApl9j+51X1Lw==",
       "type": "package",
-      "path": "peak.pcanbasic.net/4.9.0.942",
+      "path": "peak.pcanbasic.net/4.8.0.830",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -1397,7 +1397,7 @@
         "images/Peak.png",
         "lib/netstandard2.0/PCANBasic.NET.dll",
         "lib/netstandard2.0/PCANBasic.NET.xml",
-        "peak.pcanbasic.net.4.9.0.942.nupkg.sha512",
+        "peak.pcanbasic.net.4.8.0.830.nupkg.sha512",
         "peak.pcanbasic.net.nuspec"
       ]
     },
@@ -4592,7 +4592,7 @@
   },
   "projectFileDependencyGroups": {
     "net6.0": [
-      "Peak.PCANBasic.NET >= 4.9.0.942"
+      "Peak.PCANBasic.NET >= 4.8.0.830"
     ]
   },
   "packageFolders": {
@@ -4602,11 +4602,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Programming\\C#\\CyberGear_Control_.NET\\CyberGear_Control_.NET.csproj",
+      "projectUniqueName": "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\CyberGear_Control_.NET.csproj",
       "projectName": "CyberGear_Control_.NET",
-      "projectPath": "D:\\Programming\\C#\\CyberGear_Control_.NET\\CyberGear_Control_.NET.csproj",
+      "projectPath": "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\CyberGear_Control_.NET.csproj",
       "packagesPath": "C:\\Users\\L\\.nuget\\packages\\",
-      "outputPath": "D:\\Programming\\C#\\CyberGear_Control_.NET\\obj\\",
+      "outputPath": "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -4641,7 +4641,7 @@
         "dependencies": {
           "Peak.PCANBasic.NET": {
             "target": "Package",
-            "version": "[4.9.0.942, )"
+            "version": "[4.8.0.830, )"
           }
         },
         "imports": [

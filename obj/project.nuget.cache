@@ -1,14 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "BiaPCNKBjTQrvd3m6jQ5WGHOtVgRd6tItBhY+SAOlQkCc8VqKHHYOkyQD/uGv5gwIsbn6/+0zETL0UXhQ83WEQ==",
+  "dgSpecHash": "jiwVT9aivoFLen1s1EENaP6jhwW2M9bXngF9933g2W1jJzGdgoq00xV78s6kJIbcSuxGX5tj77VKP6az0F3ORA==",
   "success": true,
-  "projectFilePath": "D:\\Programming\\C#\\CyberGear_Control_.NET\\CyberGear_Control_.NET.csproj",
+  "projectFilePath": "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\CyberGear_Control_.NET.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\L\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
     "C:\\Users\\L\\.nuget\\packages\\microsoft.netcore.targets\\1.1.0\\microsoft.netcore.targets.1.1.0.nupkg.sha512",
     "C:\\Users\\L\\.nuget\\packages\\microsoft.win32.primitives\\4.3.0\\microsoft.win32.primitives.4.3.0.nupkg.sha512",
     "C:\\Users\\L\\.nuget\\packages\\netstandard.library\\1.6.1\\netstandard.library.1.6.1.nupkg.sha512",
-    "C:\\Users\\L\\.nuget\\packages\\peak.pcanbasic.net\\4.9.0.942\\peak.pcanbasic.net.4.9.0.942.nupkg.sha512",
+    "C:\\Users\\L\\.nuget\\packages\\peak.pcanbasic.net\\4.8.0.830\\peak.pcanbasic.net.4.8.0.830.nupkg.sha512",
     "C:\\Users\\L\\.nuget\\packages\\runtime.debian.8-x64.runtime.native.system.security.cryptography.openssl\\4.3.0\\runtime.debian.8-x64.runtime.native.system.security.cryptography.openssl.4.3.0.nupkg.sha512",
     "C:\\Users\\L\\.nuget\\packages\\runtime.fedora.23-x64.runtime.native.system.security.cryptography.openssl\\4.3.0\\runtime.fedora.23-x64.runtime.native.system.security.cryptography.openssl.4.3.0.nupkg.sha512",
     "C:\\Users\\L\\.nuget\\packages\\runtime.fedora.24-x64.runtime.native.system.security.cryptography.openssl\\4.3.0\\runtime.fedora.24-x64.runtime.native.system.security.cryptography.openssl.4.3.0.nupkg.sha512",

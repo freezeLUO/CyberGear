@@ -285,7 +285,7 @@ namespace CyberGear_Control_.NET
         //使能电机
         public void EnableMotor()
         {
-            byte[] data1 = new byte[0];//空字节即可
+            byte[] data1 = { };
             SendCanMessage(CmdModes.MOTOR_ENABLE, data1);
         }
         //停止电机
@@ -339,6 +339,14 @@ namespace CyberGear_Control_.NET
                 DLC = Convert.ToByte(data1.Length),
                 Data = data1
             };
+            // Write the CAN message
+            PcanStatus writeStatus = Api.Write(this.channel, canMessage);
+            if (writeStatus != PcanStatus.OK)
+            {
+                Debug.WriteLine("Failed to send the message.");
+            }
+            // Output details of the sent message
+            Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data1)}");
 
         }
 

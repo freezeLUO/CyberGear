@@ -86,10 +86,10 @@ namespace CyberGear_Control_.NET
                     while (Api.Read(channel, out canMessage, out canTimestamp) == PcanStatus.OK)
                     {
                         // 处理接收到的CAN消息
-                        Debug.WriteLine($"接收到的消息: ID=0x{canMessage.ID:X} 数据={BitConverter.ToString(canMessage.Data)}");
-                        Debug.WriteLine($"接收到的消息的时间戳: {canTimestamp}");
+                        Console.WriteLine($"接收到的消息: ID=0x{canMessage.ID:X} 数据={BitConverter.ToString(canMessage.Data)}");
+                        Console.WriteLine($"接收到的消息的时间戳: {canTimestamp}");
                         var result = Controller.ParseReceivedMsg(canMessage.Data, canMessage.ID);
-                        Debug.WriteLine($"解析结果为：Motor CAN ID: {result.Item1}, Position: {result.Item2} rad, Velocity: {result.Item3} rad/s, Torque: {result.Item4} Nm");
+                        Console.WriteLine($"解析结果为：Motor CAN ID: {result.Item1}, Position: {result.Item2} rad, Velocity: {result.Item3} rad/s, Torque: {result.Item4} Nm");
                     }
 
                     // 重置事件

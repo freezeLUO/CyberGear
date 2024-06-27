@@ -8,7 +8,7 @@
     ".NETCoreApp,Version=v6.0": {
       "CyberGear_Control_.NET/1.0.0": {
         "dependencies": {
-          "Peak.PCANBasic.NET": "4.9.0.942"
+          "Peak.PCANBasic.NET": "4.8.0.830"
         },
         "runtime": {
           "CyberGear_Control_.NET.dll": {}
@@ -71,14 +71,14 @@
           "System.Xml.XDocument": "4.3.0"
         }
       },
-      "Peak.PCANBasic.NET/4.9.0.942": {
+      "Peak.PCANBasic.NET/4.8.0.830": {
         "dependencies": {
           "NETStandard.Library": "1.6.1"
         },
         "runtime": {
           "lib/netstandard2.0/PCANBasic.NET.dll": {
-            "assemblyVersion": "4.9.0.942",
-            "fileVersion": "4.9.0.942"
+            "assemblyVersion": "4.8.0.830",
+            "fileVersion": "4.8.0.830"
           }
         }
       },
@@ -727,12 +727,12 @@
       "path": "netstandard.library/1.6.1",
       "hashPath": "netstandard.library.1.6.1.nupkg.sha512"
     },
-    "Peak.PCANBasic.NET/4.9.0.942": {
+    "Peak.PCANBasic.NET/4.8.0.830": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-Z2Iw3PEzsATeRA6hirSJfXVjdAHIxMs5J+celRQLSfvhRxmTpforhOwkWjo0iwTiC3HXRosyE+zzcG72Yt20jA==",
-      "path": "peak.pcanbasic.net/4.9.0.942",
-      "hashPath": "peak.pcanbasic.net.4.9.0.942.nupkg.sha512"
+      "sha512": "sha512-cJ1A02ANnH7oyxNKdz/+gOr5j5wxTIIbIl7MGcBhq9YZFfuBwdI4I9wD7Kxtsan2brRdebGOOgApl9j+51X1Lw==",
+      "path": "peak.pcanbasic.net/4.8.0.830",
+      "hashPath": "peak.pcanbasic.net.4.8.0.830.nupkg.sha512"
     },
     "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.0": {
       "type": "package",

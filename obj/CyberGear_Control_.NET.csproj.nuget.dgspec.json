@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Programming\\C#\\CyberGear_Control_.NET\\CyberGear_Control_.NET.csproj": {}
+    "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\CyberGear_Control_.NET.csproj": {}
   },
   "projects": {
-    "D:\\Programming\\C#\\CyberGear_Control_.NET\\CyberGear_Control_.NET.csproj": {
+    "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\CyberGear_Control_.NET.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Programming\\C#\\CyberGear_Control_.NET\\CyberGear_Control_.NET.csproj",
+        "projectUniqueName": "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\CyberGear_Control_.NET.csproj",
         "projectName": "CyberGear_Control_.NET",
-        "projectPath": "D:\\Programming\\C#\\CyberGear_Control_.NET\\CyberGear_Control_.NET.csproj",
+        "projectPath": "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\CyberGear_Control_.NET.csproj",
         "packagesPath": "C:\\Users\\L\\.nuget\\packages\\",
-        "outputPath": "D:\\Programming\\C#\\CyberGear_Control_.NET\\obj\\",
+        "outputPath": "D:\\Programming\\C#\\CyberGear_Control_.NET(GitHub)\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -46,7 +46,7 @@
           "dependencies": {
             "Peak.PCANBasic.NET": {
               "target": "Package",
-              "version": "[4.9.0.942, )"
+              "version": "[4.8.0.830, )"
             }
           },
           "imports": [

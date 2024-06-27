@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Peak.PCANBasic.NET" Version="4.9.0.942" />
+    <PackageReference Include="Peak.PCANBasic.NET" Version="4.8.0.830" />
   </ItemGroup>
 
 </Project>

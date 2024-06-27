@@ -12,32 +12,34 @@ namespace CyberGear_Control_.NET
     {
         public static void Main(string[] args)
         {
-            // 初始化PCAN通道
             PcanChannel channel = PcanChannel.Usb01;
+
             // 硬件以1000k bit/s初始化
             PcanStatus result = Api.Initialize(channel, Bitrate.Pcan1000);
             if (result != PcanStatus.OK)
             {
                 // 发生错误
+                //
                 Api.GetErrorText(result, out var errorText);
-                Debug.WriteLine(errorText);
+                Console.WriteLine(errorText);
             }
             else
             {
                 // 初始化成功
-                Debug.WriteLine($"通道{channel}表示的硬件已成功初始化");
+                Console.WriteLine($"通道{channel}表示的硬件已成功初始化");
+                Console.ReadKey();
                 // 创建接收器实例
                 PcanReceiver receiver = new PcanReceiver(channel);
                 if (receiver.Start())
                 {
-                    Debug.WriteLine("接收器已启动，如果需要结束接收器进程，请调用receiver.Stop()函数");
+                    Console.WriteLine("接收器已启动，如果需要结束接收器进程，请调用receiver.Stop()函数");
                 }
                 else
                 {
-                    Debug.WriteLine("接收器启动失败。");
+                    Console.WriteLine("接收器启动失败。");
                 }
 
-                var Motor = new Controller(127, 0, channel);
+                var Motor = new Controller(0, 127, channel);
 
                 /////////////////////////////////////////////////////////////////////////////////////
                 //以下为测试代码
@@ -95,10 +97,30 @@ namespace CyberGear_Control_.NET
                 Motor.WriteSingleParam(index, 0);
                 Console.ReadKey();
                 Console.WriteLine("写入转到位置x1");
-                Motor.SendMotorControlCommand(2.0F, 4.0F, 2.0F, 10.0F, 1.0F);
+                Motor.SendMotorControlCommand(0.1F, 4.0F, 1.0F, 2.0F, 0.1F);
                 Console.ReadKey();
                 Console.WriteLine("写入转到位置0");
-                Motor.SendMotorControlCommand(2.0F, 0.0F, 2.0F, 10.0F, 1.0F);
+                Motor.SendMotorControlCommand(0.1F, 0.0F, 1.0F, 2.0F, 0.1F);
+                Console.WriteLine("按任意键停止电机");
+                Console.ReadKey(); // 等待用户按下任意键
+
+                Console.WriteLine("写入停止电机");
+                Motor.DisableMotor();
+                // 当不再需要硬件时，将完成与硬件的连接
+                //
+                result = Api.Uninitialize(channel);
+                if (result != PcanStatus.OK)
+                {
+                    // 发生错误
+                    //
+                    Api.GetErrorText(result, out var errorText);
+                    Console.WriteLine(errorText);
+                }
+                else
+                {
+                    Console.WriteLine($"通道{channel}表示的硬件已成功关闭");
+                }
+
             }
 
         }
