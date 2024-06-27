@@ -6,7 +6,7 @@
 安装PEAK公司的Peak.Can.Basic  
 using Peak.Can.Basic  
 B站视频:   
-https://www.bilibili.com/video/BV1Xv411F7fA/?vd_source=bf6516ab99e32c1947abd6d5604f57dc   
+[https://www.bilibili.com/video/BV1Xv411F7fA/?vd_source=bf6516ab99e32c1947abd6d5604f57dc](https://www.bilibili.com/video/BV1wQ3Ce7EBw/)   
 
 参考：  
 https://github.com/Tony607/Cybergear  
