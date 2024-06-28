@@ -38,7 +38,7 @@ namespace CyberGear_Control_.NET
                 {
                     Console.WriteLine("接收器启动失败。");
                 }
-
+                // 创建控制器实例
                 var Motor = new Controller(0, 127, channel);
 
                 /////////////////////////////////////////////////////////////////////////////////////
@@ -91,18 +91,18 @@ namespace CyberGear_Control_.NET
                 ///////////////////////////////////////////////////
                 //运控模式示例
                 ///////////////////////////////////////////////////
-                Console.ReadKey();
-                index = 0x7005;
-                Console.WriteLine("写入运控模式");
-                Motor.WriteSingleParam(index, 0);
-                Console.ReadKey();
-                Console.WriteLine("写入转到位置x1");
-                Motor.SendMotorControlCommand(0.1F, 4.0F, 1.0F, 2.0F, 0.1F);
-                Console.ReadKey();
-                Console.WriteLine("写入转到位置0");
-                Motor.SendMotorControlCommand(0.1F, 0.0F, 1.0F, 2.0F, 0.1F);
-                Console.WriteLine("按任意键停止电机");
-                Console.ReadKey(); // 等待用户按下任意键
+                //Console.ReadKey();
+                //index = 0x7005;
+                //Console.WriteLine("写入运控模式");
+                //Motor.WriteSingleParam(index, 0);
+                //Console.ReadKey();
+                //Console.WriteLine("写入转到位置x1");
+                //Motor.SendMotorControlCommand(0.1F, 4.0F, 1.0F, 2.0F, 0.1F);
+                //Console.ReadKey();
+                //Console.WriteLine("写入转到位置0");
+                //Motor.SendMotorControlCommand(0.1F, 0.0F, 1.0F, 2.0F, 0.1F);
+                //Console.WriteLine("按任意键停止电机");
+                //Console.ReadKey(); // 等待用户按下任意键
 
                 Console.WriteLine("写入停止电机");
                 Motor.DisableMotor();
