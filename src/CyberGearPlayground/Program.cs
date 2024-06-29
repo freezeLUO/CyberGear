@@ -1,5 +1,4 @@
-﻿
-using CyberGear.Control;
+﻿using CyberGear.Control;
 using Peak.Can.Basic;
 
 PcanChannel channel = PcanChannel.Usb01;

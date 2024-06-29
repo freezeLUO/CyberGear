@@ -18,51 +18,65 @@ namespace CyberGear.Control
 	/// </remarks>
 	public class Controller
 	{
-		uint MasterCANID = 0;//主控制器CANID
-		uint MotorCANID = 0;//电机CANID
-		private PcanChannel channel;//CAN通道
+		/// <summary>
+		/// 主控制器CANID
+		/// </summary>
+		uint MasterCANID = 0;
+		/// <summary>
+		/// 电机CANID
+		/// </summary>
+		uint MotorCANID = 0;
+		/// <summary>
+		/// CAN通道
+		/// </summary>
+		private PcanChannel channel;
 
-		private static double P_MIN = -4 * Math.PI;//位置最小值
-		private static double P_MAX = 4 * Math.PI;//位置最大值
-		private static double V_MIN = -30.0;//速度最小值
-		private static double V_MAX = 30.0;//速度最大值
-		private static double T_MIN = -12.0;//力矩最小值
-		private static double T_MAX = 12.0;//力矩最大值
-		private static double KP_MIN = 0.0;//比例系数最小值
-		private static double KP_MAX = 500.0;//比例系数最大值
-		private static double KD_MIN = 0.0;//微分系数最小值
-		private static double KD_MAX = 5.0;//微分系数最大值
-										   //构造函数
+		/// <summary>
+		/// 位置最小值
+		/// </summary>
+		private static double P_MIN = -4 * Math.PI;
+		/// <summary>
+		/// 位置最大值
+		/// </summary>
+		private static double P_MAX = 4 * Math.PI;
+		/// <summary>
+		/// 速度最小值
+		/// </summary>
+		private static double V_MIN = -30.0;
+		/// <summary>
+		/// 速度最大值
+		/// </summary>
+		private static double V_MAX = 30.0;
+		/// <summary>
+		/// 力矩最小值
+		/// </summary>
+		private static double T_MIN = -12.0;
+		/// <summary>
+		/// 力矩最大值
+		/// </summary>
+		private static double T_MAX = 12.0;
+		/// <summary>
+		/// 比例系数最小值
+		/// </summary>
+		private static double KP_MIN = 0.0;
+		/// <summary>
+		/// 比例系数最大值
+		/// </summary>
+		private static double KP_MAX = 500.0;
+		/// <summary>
+		/// 微分系数最小值
+		/// </summary>
+		private static double KD_MIN = 0.0;
+		/// <summary>
+		/// 微分系数最大值
+		/// </summary>
+		private static double KD_MAX = 5.0;
+
 		public Controller(uint masterCANID, uint motorCANID, PcanChannel channel)
 		{
-			// 初始化控制器
 			MasterCANID = masterCANID;
 			MotorCANID = motorCANID;
 			this.channel = channel;
-		}
-
-		//仲裁ID的通讯类型枚举
-		private class CmdModes
-		{
-			public const uint GET_DEVICE_ID = 0;//获取设备ID
-			public const uint MOTOR_CONTROL = 1;//电机运控模式
-			public const uint MOTOR_FEEDBACK = 2;//电机反馈
-			public const uint MOTOR_ENABLE = 3;//电机使能
-			public const uint MOTOR_STOP = 4;//电机停止
-			public const uint SET_MECHANICAL_ZERO = 6;//设置机械零点
-			public const uint SET_MOTOR_CAN_ID = 7;//设置电机CAN ID
-			public const uint PARAM_TABLE_WRITE = 8;//参数表写入
-			public const uint SINGLE_PARAM_READ = 17;//单个参数读取
-			public const uint SINGLE_PARAM_WRITE = 18;//单个参数写入
-			public const uint FAULT_FEEDBACK = 21;//故障反馈
-		}
-		// 枚举运行模式
-		public enum RunModes
-		{
-			CONTROL_MODE = 0,    // 运控模式
-			POSITION_MODE = 1,   // 位置模式
-			SPEED_MODE = 2,      // 速度模式
-			CURRENT_MODE = 3     // 电流模式
 		}
 
 		// 参数列表
@@ -234,7 +248,6 @@ namespace CyberGear.Control
 			}
 		}
 
-
 		/// <summary>
 		/// 向指定索引处写入单个浮点参数值。
 		/// </summary>
@@ -251,8 +264,14 @@ namespace CyberGear.Control
 			byte[] data1 = data_index.Concat(date_parameter).ToArray();
 
 			//发送CAN消息
-			SendCanMessage(CmdModes.SINGLE_PARAM_WRITE, data1);
+			SendCanMessage((uint)CmdMode.SINGLE_PARAM_WRITE, data1);
 		}
+
+		/// <summary>
+		/// 向指定索引处写入单个字节参数值。
+		/// </summary>
+		/// <param name="index"></param>
+		/// <param name="byteValue"></param>
 		public void WriteSingleParam(uint index, byte byteValue)
 		{
 			// 创建一个只包含这个byte值的数组，并补充三个字节的0
@@ -263,7 +282,7 @@ namespace CyberGear.Control
 			byte[] data1 = data_index.Concat(bs).ToArray();
 
 			// 发送CAN消息
-			SendCanMessage(CmdModes.SINGLE_PARAM_WRITE, data1);
+			SendCanMessage((uint)CmdMode.SINGLE_PARAM_WRITE, data1);
 		}
 
 		/// <summary>
@@ -279,29 +298,44 @@ namespace CyberGear.Control
 			byte[] date_parameter = { 0, 0, 0, 0 };
 			//组合2个数组
 			byte[] data1 = data_index.Concat(date_parameter).ToArray();
-			SendCanMessage(CmdModes.SINGLE_PARAM_READ, data1);
+			SendCanMessage((uint)CmdMode.SINGLE_PARAM_READ, data1);
 		}
 
-		//使能电机
+		/// <summary>
+		/// 使能电机
+		/// </summary>
 		public void EnableMotor()
 		{
 			byte[] data1 = { };
-			SendCanMessage(CmdModes.MOTOR_ENABLE, data1);
+			SendCanMessage((uint)CmdMode.MOTOR_ENABLE, data1);
 		}
-		//停止电机
+
+		/// <summary>
+		/// 停止电机
+		/// </summary>
 		public void DisableMotor()
 		{
 			byte[] data1 = { 0, 0, 0, 0, 0, 0, 0, 0 };//置零
-			SendCanMessage(CmdModes.MOTOR_STOP, data1);
+			SendCanMessage((uint)CmdMode.MOTOR_STOP, data1);
 		}
-		//设置机械零点
+
+		/// <summary>
+		/// 设置机械零点
+		/// </summary>
 		public void SetMechanicalZero()
 		{
 			byte[] data1 = { 1 };//Byte[0]=1
-			SendCanMessage(CmdModes.SET_MECHANICAL_ZERO, data1);
+			SendCanMessage((uint)CmdMode.SET_MECHANICAL_ZERO, data1);
 		}
 
-		//运控模式
+		/// <summary>
+		/// 运控模式
+		/// </summary>
+		/// <param name="torque"></param>
+		/// <param name="target_angle"></param>
+		/// <param name="target_velocity"></param>
+		/// <param name="Kp"></param>
+		/// <param name="Kd"></param>
 		public void SendMotorControlCommand(float torque, float target_angle, float target_velocity, float Kp, float Kd)
 		{
 			//运控模式下发送电机控制指令。
@@ -317,7 +351,7 @@ namespace CyberGear.Control
 			uint torque_mapped = Calculate.FToU(torque, -12.0, 12.0);
 			uint data2 = torque_mapped;//data2为力矩值
 									   // 计算仲裁ID，
-			uint arbitrationId = CmdModes.MOTOR_CONTROL << 24 | data2 << 8 | MotorCANID;
+			uint arbitrationId = (uint)CmdMode.MOTOR_CONTROL << 24 | data2 << 8 | MotorCANID;
 
 			// 生成数据区1
 			uint target_angle_mapped = Calculate.FToU(target_angle, -4 * Math.PI, 4 * Math.PI);//目标角度
@@ -347,8 +381,6 @@ namespace CyberGear.Control
 			}
 			// Output details of the sent message
 			Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data1)}");
-
 		}
-
 	}
 }
