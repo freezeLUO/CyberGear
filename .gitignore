@@ -1,0 +1,7 @@
+src/CyberGear.Control/.vs/
+src/CyberGear.Control/bin/
+src/CyberGear.Control/obj/
+src/CyberGearPlayground/obj/
+src/CyberGearPlayground/bin/
+.vs/
+*.user
