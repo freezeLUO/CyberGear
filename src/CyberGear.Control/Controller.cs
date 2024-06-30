@@ -1,24 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Peak.Can.Basic;
+﻿using Peak.Can.Basic;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using CyberGear.Control.Protocols;
 using CyberGear.Control.Params;
 
 namespace CyberGear.Control
 {
-    /// <summary>
-    /// 控制器类，用于管理CyberGear控制系统中的CAN总线通信。
-    /// </summary>
-    /// <remarks>
-    /// 该类提供了一系列方法，包括发送和接收CAN消息，解析接收到的消息，
-    /// 以及处理与主控制器和电机相关的逻辑。
-    /// </remarks>
-    public class Controller
+	/// <summary>
+	/// 控制器类，用于管理CyberGear控制系统中的CAN总线通信。
+	/// </summary>
+	/// <remarks>
+	/// 该类提供了一系列方法，包括发送和接收CAN消息，解析接收到的消息，
+	/// 以及处理与主控制器和电机相关的逻辑。
+	/// </remarks>
+	public class Controller
 	{
 		/// <summary>
 		/// 主控制器CANID
@@ -29,9 +22,13 @@ namespace CyberGear.Control
 		/// </summary>
 		private readonly uint _motorCANID = 0;
 		/// <summary>
-		/// CAN通道
+		/// CAN 通道
 		/// </summary>
 		private readonly PcanChannel _channel;
+		/// <summary>
+		/// CAN 通道
+		/// </summary>
+		public PcanChannel PcanChanne => _channel;
 
 		/// <summary>
 		/// 位置最小值
@@ -85,21 +82,6 @@ namespace CyberGear.Control
 			_masterCANID = masterCANID;
 			_motorCANID = motorCANID;
 			_channel = channel;
-		}
-
-		// 参数列表
-		public static class ParameterList
-		{
-			public const uint RunMode = 0x7005; // 运控模式：0-位置模式；1-速度模式；2-电流模式
-			public const uint IqRef = 0x7006; // 电流模式Iq指令（float类型，单位A）
-			public const uint SpdRef = 0x700A; // 转速模式转速指令（float类型，单位rad/s）
-			public const uint ImitTorque = 0x700B; // 转矩限制（float类型，单位Nm）
-			public const uint CurKp = 0x7010; // 电流的Kp（float类型，默认值0.125）
-			public const uint CurKi = 0x7011; // 电流的Ki（float类型，默认值0.0158）
-			public const uint CurFiltGain = 0x7014; // 电流滤波系数filt_gain（float类型，默认值0.1）
-			public const uint LocRef = 0x7016; // 位置模式角度指令（float类型，单位rad）
-			public const uint LimitSpd = 0x7017; // 位置模式速度设置（float类型，单位rad/s）
-			public const uint LimitCur = 0x7018; // 速度位置模式电流设置（float类型，单位A）
 		}
 
 		/// <summary>
@@ -217,6 +199,11 @@ namespace CyberGear.Control
 			}
 		}
 
+		/// <summary>
+		/// 写入参数
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="param"></param>
 		public void WriteParam<T>(IParam<T> param) where T : struct, IComparable<T>
 		{
 			var limitParam = param as ILimitParam<T>;
@@ -231,6 +218,69 @@ namespace CyberGear.Control
 			//发送CAN消息
 			CanSend(CmdMode.SINGLE_PARAM_WRITE, param.ToArray());
 		}
+
+		/// <summary>
+		/// 设置运行模式
+		/// </summary>
+		/// <param name="runMode"></param>
+		public void SetRunMode(RunMode runMode)
+			=> WriteParam(new RunModeParam(runMode));
+
+		/// <summary>
+		/// 设置转速模式转速指令
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetIqRef(float value)
+			=> WriteParam(new IqRefParam(value));
+
+		/// <summary>
+		/// 设置转矩限制
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetLimitTorque(float value)
+			=> WriteParam(new LimitTorqueParam(value));
+
+		/// <summary>
+		/// 设置电流的 Kp
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetCurKpParam(float value = (float)0.125)
+			=> WriteParam(new CurKpParam(value));
+
+		/// <summary>
+		/// 设置电流的 Ki
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetCurKiParam(float value = (float)0.0158)
+			=> WriteParam(new CurKiParam(value));
+
+		/// <summary>
+		/// 设置电流滤波系数
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetCurFiltGainParam(float value = (float)0.1)
+			=> WriteParam(new CurFiltGainParam(value));
+
+		/// <summary>
+		/// 设置位置模式角度指令
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetLocRefParam(float value)
+			=> WriteParam(new LocRefParam(value));
+
+		/// <summary>
+		/// 设置位置模式速度设置
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetLimitSpdParam(float value)
+			=> WriteParam(new LimitSpdParam(value));
+
+		/// <summary>
+		/// 设置速度位置模式电流设置
+		/// </summary>
+		/// <param name="value"></param>
+		public void SetLimitCurParam(float value)
+			=> WriteParam(new LimitCurParam(value));
 
 		/// <summary>
 		/// 向指定索引处写入单个浮点参数值。
@@ -251,6 +301,7 @@ namespace CyberGear.Control
 			CanSend(CmdMode.SINGLE_PARAM_WRITE, data);
 		}
 
+		[Obsolete]
 		/// <summary>
 		/// 向指定索引处写入单个字节参数值。
 		/// </summary>
@@ -269,6 +320,7 @@ namespace CyberGear.Control
 			CanSend(CmdMode.SINGLE_PARAM_WRITE, data1);
 		}
 
+		[Obsolete]
 		/// <summary>
 		/// 读取单个参数
 		/// </summary>
@@ -290,8 +342,7 @@ namespace CyberGear.Control
 		/// </summary>
 		public void EnableMotor()
 		{
-			byte[] data1 = { };
-			CanSend(CmdMode.MOTOR_ENABLE, data1);
+			CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>());
 		}
 
 		/// <summary>
@@ -299,7 +350,7 @@ namespace CyberGear.Control
 		/// </summary>
 		public void DisableMotor()
 		{
-			CanSend(CmdMode.MOTOR_STOP, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 });
+			CanSend(CmdMode.MOTOR_STOP, new byte[8]);
 		}
 
 		/// <summary>

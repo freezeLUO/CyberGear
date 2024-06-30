@@ -7,14 +7,16 @@ using System.Threading.Tasks;
 namespace CyberGear.Control.Params
 {
 	/// <summary>
-	/// 电流的 Ki
+	/// 位置模式速度设置
 	/// </summary>
-	public readonly struct CurKiParam : IParam<float>
+	public readonly struct LimitSpdParam : ILimitParam<float>
 	{
-		public ushort Index { get; init; } = 0X7011;
+		public float MaxValue { get; init; } = 30;
+		public float MinValue { get; init; } = 0;
+		public ushort Index { get; init; } = 0X7017;
 		public float Value { get; init; }
 
-		public CurKiParam(float value)
+		public LimitSpdParam(float value)
 		{
 			Value = value;
 		}

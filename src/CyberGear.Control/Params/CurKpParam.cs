@@ -14,7 +14,7 @@ namespace CyberGear.Control.Params
 		public ushort Index { get; init; } = 0X7010;
 		public float Value { get; init; }
 
-		public CurKpParam(float value = (float)0.125)
+		public CurKpParam(float value)
 		{
 			Value = value;
 		}

@@ -7,14 +7,16 @@ using System.Threading.Tasks;
 namespace CyberGear.Control.Params
 {
 	/// <summary>
-	/// 电流的 Ki
+	/// 电流滤波系数
 	/// </summary>
-	public readonly struct CurKiParam : IParam<float>
+	public readonly struct CurFiltGainParam : ILimitParam<float>
 	{
-		public ushort Index { get; init; } = 0X7011;
+		public float MaxValue { get; init; } = 1;
+		public float MinValue { get; init; } = 0;
+		public ushort Index { get; init; } = 0X7014;
 		public float Value { get; init; }
 
-		public CurKiParam(float value)
+		public CurFiltGainParam(float value)
 		{
 			Value = value;
 		}

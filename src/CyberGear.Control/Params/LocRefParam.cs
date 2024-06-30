@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 namespace CyberGear.Control.Params
 {
 	/// <summary>
-	/// 电流的 Ki
+	/// 位置模式角度指令
 	/// </summary>
-	public readonly struct CurKiParam : IParam<float>
+	public readonly struct LocRefParam : IParam<float>
 	{
-		public ushort Index { get; init; } = 0X7011;
+		public ushort Index { get; init; } = 0X7016;
 		public float Value { get; init; }
 
-		public CurKiParam(float value)
+		public LocRefParam(float value)
 		{
 			Value = value;
 		}
