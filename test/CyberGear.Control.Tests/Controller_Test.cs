@@ -22,10 +22,22 @@ namespace CyberGear.Control.Tests
 		/// 写入参数
 		/// </summary>
 		[Fact]
-		public void WriteSingleParam_Ok()
+		public void WriteSingleParam_Greater_NOk()
 		{
 			var motor = new Controller(0, 127, PcanChannel.Usb01);
-			motor.WriteParam(new SpdRefParam(40));
+			Action action = () => motor.WriteParam(new SpdRefParam(40));
+			action.Should().Throw<ArgumentOutOfRangeException>();
+		}
+
+		/// <summary>
+		/// 写入参数
+		/// </summary>
+		[Fact]
+		public void WriteSingleParam_Less_NOk()
+		{
+			var motor = new Controller(0, 127, PcanChannel.Usb01);
+			Action action = () => motor.WriteParam(new SpdRefParam(-40));
+			action.Should().Throw<ArgumentOutOfRangeException>();
 		}
 	}
 }

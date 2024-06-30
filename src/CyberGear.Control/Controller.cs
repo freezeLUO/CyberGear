@@ -210,10 +210,9 @@ namespace CyberGear.Control
 			if (limitParam is not null)
 			{
 				// 校验
-				if (limitParam.Value.CompareTo(limitParam.MinValue) < 0)
-					return;
-				if (limitParam.Value.CompareTo(limitParam.MaxValue) > 0)
-					return;
+				if (limitParam.Value.CompareTo(limitParam.MinValue) < 0
+					|| limitParam.Value.CompareTo(limitParam.MaxValue) > 0)
+					throw new ArgumentOutOfRangeException($"Value should between {limitParam.MinValue} and {limitParam.MaxValue}");
 			}
 			//发送CAN消息
 			CanSend(CmdMode.SINGLE_PARAM_WRITE, param.ToArray());
@@ -282,6 +281,7 @@ namespace CyberGear.Control
 		public void SetLimitCurParam(float value)
 			=> WriteParam(new LimitCurParam(value));
 
+		[Obsolete]
 		/// <summary>
 		/// 向指定索引处写入单个浮点参数值。
 		/// </summary>

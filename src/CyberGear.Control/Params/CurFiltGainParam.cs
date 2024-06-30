@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,7 +24,11 @@ namespace CyberGear.Control.Params
 
 		public byte[] ToArray()
 		{
-			throw new NotImplementedException();
+			var ret = new byte[8];
+			BinaryPrimitives.WriteUInt16BigEndian(ret.AsSpan(), Index);
+			var floatArray = BitConverter.GetBytes(Value);
+			Array.Copy(floatArray, 0, ret, 4, floatArray.Length);
+			return ret;
 		}
 	}
 }
