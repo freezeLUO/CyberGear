@@ -9,7 +9,7 @@ namespace CyberGear.Control
 	/// <summary>
 	/// 仲裁ID的通讯类型
 	/// </summary>
-	public enum CmdMode
+	public enum CmdMode : byte
 	{
 		/// <summary>
 		/// 获取设备ID

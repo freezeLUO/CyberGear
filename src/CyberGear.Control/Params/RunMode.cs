@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CyberGear.Control
+namespace CyberGear.Control.Params
 {
 	/// <summary>
 	/// 运行模式
 	/// </summary>
-	public enum RunMode
+	public enum RunMode : byte
 	{
 		/// <summary>
 		/// 运控模式

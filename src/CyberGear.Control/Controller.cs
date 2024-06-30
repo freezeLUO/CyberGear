@@ -6,17 +6,19 @@ using System.Threading.Tasks;
 using Peak.Can.Basic;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using CyberGear.Control.Protocols;
+using CyberGear.Control.Params;
 
 namespace CyberGear.Control
 {
-	/// <summary>
-	/// 控制器类，用于管理CyberGear控制系统中的CAN总线通信。
-	/// </summary>
-	/// <remarks>
-	/// 该类提供了一系列方法，包括发送和接收CAN消息，解析接收到的消息，
-	/// 以及处理与主控制器和电机相关的逻辑。
-	/// </remarks>
-	public class Controller
+    /// <summary>
+    /// 控制器类，用于管理CyberGear控制系统中的CAN总线通信。
+    /// </summary>
+    /// <remarks>
+    /// 该类提供了一系列方法，包括发送和接收CAN消息，解析接收到的消息，
+    /// 以及处理与主控制器和电机相关的逻辑。
+    /// </remarks>
+    public class Controller
 	{
 		/// <summary>
 		/// 主控制器CANID
@@ -105,7 +107,7 @@ namespace CyberGear.Control
 		/// </summary>
 		/// <param name="cmdMode">仲裁ID通信类型</param>
 		/// <param name="data">CAN2.0数据区1</param>
-		public void SendCanMessage(CmdMode cmdMode, byte[] data)
+		internal void CanSend(CmdMode cmdMode, byte[] data)
 		{
 			// 计算仲裁ID
 			uint arbitrationId = GetArbitrationId(cmdMode);
@@ -215,6 +217,21 @@ namespace CyberGear.Control
 			}
 		}
 
+		public void WriteParam<T>(IParam<T> param) where T : struct, IComparable<T>
+		{
+			var limitParam = param as ILimitParam<T>;
+			if (limitParam is not null)
+			{
+				// 校验
+				if (limitParam.Value.CompareTo(limitParam.MinValue) < 0)
+					return;
+				if (limitParam.Value.CompareTo(limitParam.MaxValue) > 0)
+					return;
+			}
+			//发送CAN消息
+			CanSend(CmdMode.SINGLE_PARAM_WRITE, param.ToArray());
+		}
+
 		/// <summary>
 		/// 向指定索引处写入单个浮点参数值。
 		/// </summary>
@@ -228,10 +245,10 @@ namespace CyberGear.Control
 			byte[] data_index = BitConverter.GetBytes(index);
 			byte[] date_parameter = BitConverter.GetBytes(value);
 			//组合2个数组   
-			byte[] data1 = data_index.Concat(date_parameter).ToArray();
+			byte[] data = data_index.Concat(date_parameter).ToArray();
 
 			//发送CAN消息
-			SendCanMessage(CmdMode.SINGLE_PARAM_WRITE, data1);
+			CanSend(CmdMode.SINGLE_PARAM_WRITE, data);
 		}
 
 		/// <summary>
@@ -249,7 +266,7 @@ namespace CyberGear.Control
 			byte[] data1 = data_index.Concat(bs).ToArray();
 
 			// 发送CAN消息
-			SendCanMessage(CmdMode.SINGLE_PARAM_WRITE, data1);
+			CanSend(CmdMode.SINGLE_PARAM_WRITE, data1);
 		}
 
 		/// <summary>
@@ -265,7 +282,7 @@ namespace CyberGear.Control
 			byte[] date_parameter = { 0, 0, 0, 0 };
 			//组合2个数组
 			byte[] data1 = data_index.Concat(date_parameter).ToArray();
-			SendCanMessage(CmdMode.SINGLE_PARAM_READ, data1);
+			CanSend(CmdMode.SINGLE_PARAM_READ, data1);
 		}
 
 		/// <summary>
@@ -274,7 +291,7 @@ namespace CyberGear.Control
 		public void EnableMotor()
 		{
 			byte[] data1 = { };
-			SendCanMessage(CmdMode.MOTOR_ENABLE, data1);
+			CanSend(CmdMode.MOTOR_ENABLE, data1);
 		}
 
 		/// <summary>
@@ -282,7 +299,7 @@ namespace CyberGear.Control
 		/// </summary>
 		public void DisableMotor()
 		{
-			SendCanMessage(CmdMode.MOTOR_STOP, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 });
+			CanSend(CmdMode.MOTOR_STOP, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 });
 		}
 
 		/// <summary>
@@ -290,7 +307,7 @@ namespace CyberGear.Control
 		/// </summary>
 		public void SetMechanicalZero()
 		{
-			SendCanMessage(CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 });
+			CanSend(CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 });
 		}
 
 		/// <summary>
