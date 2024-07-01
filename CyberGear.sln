@@ -5,7 +5,9 @@ VisualStudioVersion = 17.5.33414.496
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CyberGear.Control", "src\CyberGear.Control\CyberGear.Control.csproj", "{6FA74E9E-0C8D-4363-AA9D-FB9FF773B58B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CyberGearPlayground", "src\CyberGearPlayground\CyberGearPlayground.csproj", "{44953773-D0CB-44D2-93C2-F7E73BDB3C6F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CyberGearPlayground", "src\CyberGearPlayground\CyberGearPlayground.csproj", "{44953773-D0CB-44D2-93C2-F7E73BDB3C6F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CyberGear.Control.Tests", "test\CyberGear.Control.Tests\CyberGear.Control.Tests.csproj", "{2768C3CD-EA17-4EC1-BCCF-E69F97440346}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{44953773-D0CB-44D2-93C2-F7E73BDB3C6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{44953773-D0CB-44D2-93C2-F7E73BDB3C6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{44953773-D0CB-44D2-93C2-F7E73BDB3C6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2768C3CD-EA17-4EC1-BCCF-E69F97440346}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2768C3CD-EA17-4EC1-BCCF-E69F97440346}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2768C3CD-EA17-4EC1-BCCF-E69F97440346}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2768C3CD-EA17-4EC1-BCCF-E69F97440346}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

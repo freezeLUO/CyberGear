@@ -15,7 +15,14 @@ namespace CyberGear.Control;
 /// </remarks>
 public class Calculate
 {
-	// 用于将输入映射到0到65535的范围，val为输入值
+	/// <summary>
+	/// 用于将输入映射到0到65535的范围，val为输入值
+	/// </summary>
+	/// <param name="val"></param>
+	/// <param name="xmin"></param>
+	/// <param name="xmax"></param>
+	/// <returns></returns>
+	/// <exception cref="ArgumentOutOfRangeException"></exception>
 	public static uint FToU(double val, double xmin, double xmax)
 	{
 		// 计算目标区间和原始区间的长度
@@ -38,7 +45,14 @@ public class Calculate
 		return (uint)Math.Round(mappedValue);
 	}
 
-	// 用于将输入映射到0到65535的范围，x为输入值
+	/// <summary>
+	/// 用于将输入映射到0到65535的范围，x为输入值
+	/// </summary>
+	/// <param name="x"></param>
+	/// <param name="xmin"></param>
+	/// <param name="xmax"></param>
+	/// <returns></returns>
+	/// <exception cref="ArgumentOutOfRangeException"></exception>
 	public static double UToF(int x, double xmin, double xmax)
 	{
 		// 确保x值在0到65535之间

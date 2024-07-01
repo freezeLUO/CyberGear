@@ -5,3 +5,5 @@ src/CyberGearPlayground/obj/
 src/CyberGearPlayground/bin/
 .vs/
 *.user
+test/CyberGear.Control.Tests/obj
+test/CyberGear.Control.Tests/bin
