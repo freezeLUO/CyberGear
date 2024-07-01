@@ -5,50 +5,51 @@ using System.Text;
 using System.Threading.Tasks;
 using Peak.Can.Basic;
 using System.Diagnostics;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace CyberGear.Control
 {
 	public class PcanReceiver
 	{
-		private EventWaitHandle receiveEvent;
+		private readonly ManualResetEvent _mre;
+		private readonly EventWaitHandle _receiveEvent;
 		private Thread? receiveThread;
 		private bool isRunning;
-		private PcanChannel channel;
+		private readonly PcanChannel _channel;
 
-		public PcanReceiver(PcanChannel channel)
+		public PcanReceiver(PcanChannel channel, ManualResetEvent mre)
 		{
-			this.channel = channel;
-			receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+			_channel = channel;
+			_receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+			_mre = mre;
 		}
 
 		public bool Start()
 		{
-
-			// 根据操作系统类型配置接收事件
-			if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+			// Windows操作系统
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
 				// 在Windows操作系统上，直接设置接收事件
-				if (Api.SetValue(channel, PcanParameter.ReceiveEvent, (uint)receiveEvent.SafeWaitHandle.DangerousGetHandle().ToInt32()) != PcanStatus.OK)
+				if (Api.SetValue(_channel, PcanParameter.ReceiveEvent, (uint)_receiveEvent.SafeWaitHandle.DangerousGetHandle().ToInt32()) != PcanStatus.OK)
 				{
-					Console.WriteLine($"在通道 {channel} 上配置接收事件时出错。");
-					Api.Uninitialize(channel);
+					Debug.WriteLine($"在通道 {_channel} 上配置接收事件时出错。");
+					Api.Uninitialize(_channel);
 					return false;
 				}
 			}
+			// 在非Windows操作系统上，获取接收事件句柄并进行设置
 			else
 			{
-				// 在非Windows操作系统上，获取接收事件句柄并进行设置
 				uint eventHandle;
-				if (Api.GetValue(channel, PcanParameter.ReceiveEvent, out eventHandle) != PcanStatus.OK)
+				if (Api.GetValue(_channel, PcanParameter.ReceiveEvent, out eventHandle) != PcanStatus.OK)
 				{
-					Console.WriteLine($"在通道 {channel} 上获取接收事件时出错。");
-					Api.Uninitialize(channel);
+					Debug.WriteLine($"在通道 {_channel} 上获取接收事件时出错。");
+					Api.Uninitialize(_channel);
 					return false;
 				}
 
-				receiveEvent.SafeWaitHandle.Close();
-				receiveEvent.SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(new IntPtr(eventHandle), false);
+				_receiveEvent.SafeWaitHandle.Close();
+				_receiveEvent.SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(new IntPtr(eventHandle), false);
 			}
 
 			// 启动接收线程
@@ -56,7 +57,7 @@ namespace CyberGear.Control
 			receiveThread = new Thread(ReceiveThread);
 			receiveThread.Start();
 
-			Console.WriteLine($"已为通道 {channel} 配置接收事件。");
+			Debug.WriteLine($"已为通道 {_channel} 配置接收事件。");
 			return true;
 		}
 
@@ -68,32 +69,21 @@ namespace CyberGear.Control
 			{
 				receiveThread.Join();
 			}
-			Api.Uninitialize(channel);
-			Console.WriteLine($"通道 {channel} 已关闭。");
+			Api.Uninitialize(_channel);
+			Debug.WriteLine($"通道 {_channel} 已关闭。");
 		}
 
 		private void ReceiveThread()
 		{
 			while (isRunning)
 			{
-				// 等待事件信号
-				if (receiveEvent.WaitOne(50))
+				// 读取并处理接收缓冲区中的所有CAN消息
+				while (Api.Read(_channel, out var canMessage, out var canTimestamp) == PcanStatus.OK)
 				{
-					PcanMessage canMessage;
-					ulong canTimestamp;
-
-					// 读取并处理接收缓冲区中的所有CAN消息
-					while (Api.Read(channel, out canMessage, out canTimestamp) == PcanStatus.OK)
-					{
-						// 处理接收到的CAN消息
-						Console.WriteLine($"接收到的消息: ID=0x{canMessage.ID:X} 数据={BitConverter.ToString(canMessage.Data)}");
-						Console.WriteLine($"接收到的消息的时间戳: {canTimestamp}");
-						var result = Controller.ParseReceivedMsg(canMessage.Data, canMessage.ID);
-						Console.WriteLine($"解析结果为：Motor CAN ID: {result.Item1}, Position: {result.Item2} rad, Velocity: {result.Item3} rad/s, Torque: {result.Item4} Nm");
-					}
-
-					// 重置事件
-					receiveEvent.Reset();
+					Debug.WriteLine($"{canTimestamp}: 消息: ID=0x{canMessage.ID:X} 数据={BitConverter.ToString(canMessage.Data)}");
+					var result = Controller.ParseReceivedMsg(canMessage.Data, canMessage.ID);
+					_mre.Set();
+					Debug.WriteLine($"解析结果为：Motor CAN ID: {result.Item1}, Position: {result.Item2} rad, Velocity: {result.Item3} rad/s, Torque: {result.Item4} Nm");
 				}
 			}
 		}

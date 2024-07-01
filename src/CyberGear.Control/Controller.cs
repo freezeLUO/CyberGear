@@ -30,46 +30,32 @@ namespace CyberGear.Control
 		/// </summary>
 		public PcanChannel PcanChanne => _channel;
 
+		private readonly ManualResetEvent _mre;
+
 		/// <summary>
 		/// 位置最小值
 		/// </summary>
-		private static double P_MIN = -4 * Math.PI;
+		private const double P_MIN = -4 * Math.PI;
 		/// <summary>
 		/// 位置最大值
 		/// </summary>
-		private static double P_MAX = 4 * Math.PI;
+		private const double P_MAX = 4 * Math.PI;
 		/// <summary>
 		/// 速度最小值
 		/// </summary>
-		private static double V_MIN = -30.0;
+		private const double V_MIN = -30.0;
 		/// <summary>
 		/// 速度最大值
 		/// </summary>
-		private static double V_MAX = 30.0;
+		private const double V_MAX = 30.0;
 		/// <summary>
 		/// 力矩最小值
 		/// </summary>
-		private static double T_MIN = -12.0;
+		private const double T_MIN = -12.0;
 		/// <summary>
 		/// 力矩最大值
 		/// </summary>
-		private static double T_MAX = 12.0;
-		/// <summary>
-		/// 比例系数最小值
-		/// </summary>
-		private static double KP_MIN = 0.0;
-		/// <summary>
-		/// 比例系数最大值
-		/// </summary>
-		private static double KP_MAX = 500.0;
-		/// <summary>
-		/// 微分系数最小值
-		/// </summary>
-		private static double KD_MIN = 0.0;
-		/// <summary>
-		/// 微分系数最大值
-		/// </summary>
-		private static double KD_MAX = 5.0;
+		private const double T_MAX = 12.0;
 
 		/// <summary>
 		/// 构造函数
@@ -82,6 +68,7 @@ namespace CyberGear.Control
 			_masterCANID = masterCANID;
 			_motorCANID = motorCANID;
 			_channel = channel;
+			_mre = new ManualResetEvent(true);
 		}
 
 		/// <summary>
@@ -89,7 +76,8 @@ namespace CyberGear.Control
 		/// </summary>
 		/// <param name="cmdMode">仲裁ID通信类型</param>
 		/// <param name="data">CAN2.0数据区1</param>
-		internal void CanSend(CmdMode cmdMode, byte[] data)
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		internal void CanSend(CmdMode cmdMode, byte[] data, int timeoutMilliseconds)
 		{
 			// 计算仲裁ID
 			uint arbitrationId = GetArbitrationId(cmdMode);
@@ -107,6 +95,32 @@ namespace CyberGear.Control
 			{
 				Debug.WriteLine("Failed to send the message.");
 			}
+
+			bool isReplyOK = false;
+			var t = new Thread(_ =>
+			{
+				Thread.Sleep(timeoutMilliseconds);
+				// 已经完成后, 不要干涉后续的 mre
+				if(!isReplyOK)
+					_mre.Set();
+			})
+			{ IsBackground = true };
+			t.Start();
+
+			_mre.Reset();
+			_mre.WaitOne();
+
+			// 等待线程正在运行, 没有超时
+			if (t.ThreadState == (System.Threading.ThreadState.WaitSleepJoin | System.Threading.ThreadState.Background))
+			{
+				isReplyOK = true;
+			}
+			// 等待线程结束, 已经超时
+			else
+			{
+				throw new TimeoutException("reply timeout");
+			}
+
 			// Output details of the sent message
 			Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data)}");
 		}
@@ -118,56 +132,6 @@ namespace CyberGear.Control
 		/// <returns></returns>
 		public uint GetArbitrationId(CmdMode cmdMode) =>
 			(uint)cmdMode << 24 | _masterCANID << 8 | _motorCANID;
-
-		// // 异步发送和接收CAN消息
-		// public async Task<Tuple<byte[], uint>> SendReceiveCanMessageAsync(uint cmdMode, uint data2, byte[] data1, uint timeout = 200)
-		// {
-		//     // 计算仲裁ID
-		//     uint arbitrationId = (cmdMode << 24) | (data2 << 8) | MotorCANID;
-
-		//     // 构造CAN消息
-		//     PcanMessage canMessage = new PcanMessage
-		//     {
-		//         ID = arbitrationId,
-		//         MsgType = MessageType.Extended,
-		//         DLC = Convert.ToByte(data1.Length),
-		//         Data = data1
-		//     };
-
-		//     // 异步发送CAN消息
-		//     PcanStatus writeStatus = await Task.Run(() => Api.Write(this.channel, canMessage));
-		//     if (writeStatus != PcanStatus.OK)
-		//     {
-		//         Console.WriteLine("Failed to send the message.");
-		//         return Tuple.Create<byte[], uint>(new byte[0], 0);
-		//     }
-
-		//     Console.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data1)}");
-
-		//     // 异步等待，替代Thread.Sleep
-		//     await Task.Delay(50); // 给驱动一些时间来发送消息
-
-		//     // 异步读取CAN消息
-		//     var readResult = await Task.Run(() =>
-		//     {
-		//         PcanMessage receivedMsg;
-		//         ulong timestamp;
-		//         PcanStatus readStatus = Api.Read(this.channel, out receivedMsg, out timestamp);
-		//         return new { readStatus, receivedMsg };
-		//     });
-
-		//     if (readResult.readStatus == PcanStatus.OK)
-		//     {
-		//         byte[]? DB = readResult.receivedMsg.Data;
-		//         byte[] bytes = DB;
-		//         return Tuple.Create(bytes, readResult.receivedMsg.ID);
-		//     }
-		//     else
-		//     {
-		//         Debug.WriteLine("Failed to receive the message or message was not received within the timeout period.");
-		//         return Tuple.Create<byte[], uint>(new byte[0], 0);
-		//     }
-		// }
 
 		/// <summary>
 		/// 解析接收到的CAN消息。
@@ -204,7 +168,7 @@ namespace CyberGear.Control
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="param"></param>
-		public void WriteParam<T>(IParam<T> param) where T : struct, IComparable<T>
+		public void WriteParam<T>(IParam<T> param, int timeoutMilliseconds) where T : struct, IComparable<T>
 		{
 			var limitParam = param as ILimitParam<T>;
 			if (limitParam is not null)
@@ -215,110 +179,71 @@ namespace CyberGear.Control
 					throw new ArgumentOutOfRangeException($"Value should between {limitParam.MinValue} and {limitParam.MaxValue}");
 			}
 			//发送CAN消息
-			CanSend(CmdMode.SINGLE_PARAM_WRITE, param.ToArray());
+			CanSend(CmdMode.SINGLE_PARAM_WRITE, param.ToArray(), timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 设置运行模式
 		/// </summary>
 		/// <param name="runMode"></param>
-		public void SetRunMode(RunMode runMode)
-			=> WriteParam(new RunModeParam(runMode));
+		public void SetRunMode(RunMode runMode, int timeoutMilliseconds = 2000)
+			=> WriteParam(new RunModeParam(runMode), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置转速模式转速指令
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetIqRef(float value)
-			=> WriteParam(new IqRefParam(value));
+		public void SetIqRef(float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(new IqRefParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置转矩限制
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetLimitTorque(float value)
-			=> WriteParam(new LimitTorqueParam(value));
+		public void SetLimitTorque(float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(new LimitTorqueParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置电流的 Kp
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetCurKpParam(float value = (float)0.125)
-			=> WriteParam(new CurKpParam(value));
+		public void SetCurKpParam(float value = (float)0.125, int timeoutMilliseconds = 2000)
+			=> WriteParam(new CurKpParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置电流的 Ki
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetCurKiParam(float value = (float)0.0158)
-			=> WriteParam(new CurKiParam(value));
+		public void SetCurKiParam(float value = (float)0.0158, int timeoutMilliseconds = 2000)
+			=> WriteParam(new CurKiParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置电流滤波系数
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetCurFiltGainParam(float value = (float)0.1)
-			=> WriteParam(new CurFiltGainParam(value));
+		public void SetCurFiltGainParam(float value = (float)0.1, int timeoutMilliseconds = 2000)
+			=> WriteParam(new CurFiltGainParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置位置模式角度指令
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetLocRefParam(float value)
-			=> WriteParam(new LocRefParam(value));
+		public void SetLocRefParam(float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(new LocRefParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置位置模式速度设置
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetLimitSpdParam(float value)
-			=> WriteParam(new LimitSpdParam(value));
+		public void SetLimitSpdParam(float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(new LimitSpdParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置速度位置模式电流设置
 		/// </summary>
 		/// <param name="value"></param>
-		public void SetLimitCurParam(float value)
-			=> WriteParam(new LimitCurParam(value));
-
-		[Obsolete]
-		/// <summary>
-		/// 向指定索引处写入单个浮点参数值。
-		/// </summary>
-		/// <param name="index">参数的索引。</param>
-		/// <param name="value">要设置的浮点数值。</param>
-		/// <remarks>
-		/// 具体的index请参见官方手册
-		/// </remarks>
-		public void WriteSingleParam(uint index, float value)
-		{
-			byte[] data_index = BitConverter.GetBytes(index);
-			byte[] date_parameter = BitConverter.GetBytes(value);
-			//组合2个数组   
-			byte[] data = data_index.Concat(date_parameter).ToArray();
-
-			//发送CAN消息
-			CanSend(CmdMode.SINGLE_PARAM_WRITE, data);
-		}
-
-		[Obsolete]
-		/// <summary>
-		/// 向指定索引处写入单个字节参数值。
-		/// </summary>
-		/// <param name="index"></param>
-		/// <param name="byteValue"></param>
-		public void WriteSingleParam(uint index, byte byteValue)
-		{
-			// 创建一个只包含这个byte值的数组，并补充三个字节的0
-			byte[] bs = new byte[] { byteValue };
-			bs = bs.Concat(Enumerable.Repeat((byte)0, 3)).ToArray();
-			byte[] data_index = BitConverter.GetBytes(index);
-			// 组合index数组和处理后的value数组
-			byte[] data1 = data_index.Concat(bs).ToArray();
-
-			// 发送CAN消息
-			CanSend(CmdMode.SINGLE_PARAM_WRITE, data1);
-		}
+		public void SetLimitCurParam(float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(new LimitCurParam(value), timeoutMilliseconds);
 
 		[Obsolete]
 		/// <summary>
@@ -328,37 +253,37 @@ namespace CyberGear.Control
 		/// <remarks>
 		/// 具体的index请参见官方手册
 		/// </remarks>
-		public void ReadSingleParam(uint index)
+		public void ReadSingleParam(uint index, int timeoutMilliseconds = 2000)
 		{
 			byte[] data_index = BitConverter.GetBytes(index);
 			byte[] date_parameter = { 0, 0, 0, 0 };
 			//组合2个数组
 			byte[] data1 = data_index.Concat(date_parameter).ToArray();
-			CanSend(CmdMode.SINGLE_PARAM_READ, data1);
+			CanSend(CmdMode.SINGLE_PARAM_READ, data1, timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 使能电机
 		/// </summary>
-		public void EnableMotor()
+		public void EnableMotor(int timeoutMilliseconds = 2000)
 		{
-			CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>());
+			CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>(), timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 停止电机
 		/// </summary>
-		public void DisableMotor()
+		public void DisableMotor(int timeoutMilliseconds = 2000)
 		{
-			CanSend(CmdMode.MOTOR_STOP, new byte[8]);
+			CanSend(CmdMode.MOTOR_STOP, new byte[8], timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 设置机械零点
 		/// </summary>
-		public void SetMechanicalZero()
+		public void SetMechanicalZero(int timeoutMilliseconds = 2000)
 		{
-			CanSend(CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 });
+			CanSend(CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 }, timeoutMilliseconds);
 		}
 
 		/// <summary>
