@@ -10,4 +10,8 @@
     <PackageReference Include="Peak.PCANBasic.NET" Version="4.8.0.830" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="CyberGear.Control.Tests"/>
+  </ItemGroup>
+
 </Project>
