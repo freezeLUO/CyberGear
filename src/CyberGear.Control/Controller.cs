@@ -116,10 +116,18 @@ namespace CyberGear.Control
 			_isRunning = true;
 		}
 
-		/// <summary>
-		/// 停止接受数据
-		/// </summary>
-		private void StopReceive()
+        /// <summary>
+        /// 开启接受数据线程
+        /// </summary>
+        public void StartReceiveThread()
+        {
+            StartReceive();
+        }
+
+        /// <summary>
+        /// 停止接受数据
+        /// </summary>
+        private void StopReceive()
 		{
 			// 停止接收线程并进行清理
 			_isRunning = false;
@@ -132,10 +140,11 @@ namespace CyberGear.Control
 			}
 		}
 
-		/// <summary>
-		/// 接收数据
-		/// </summary>
-		private void ReceiveThread()
+
+        /// <summary>
+        /// 接收数据
+        /// </summary>
+        private void ReceiveThread()
 		{
 			while (_isRunning)
 			{
@@ -355,9 +364,9 @@ namespace CyberGear.Control
 		/// </summary>
 		public void EnableMotor(int timeoutMilliseconds = 2000)
 		{
-			if (_isRunning)
-				return;
-			StartReceive();
+			//if (_isRunning)
+			//	return;
+			//StartReceive();
 			CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>(), timeoutMilliseconds);
 		}
 
@@ -369,7 +378,7 @@ namespace CyberGear.Control
 			if (!_isRunning)
 				return;
 			CanSend(CmdMode.MOTOR_STOP, new byte[8], timeoutMilliseconds);
-			StopReceive();
+			//StopReceive();
 		}
 
 		/// <summary>

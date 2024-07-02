@@ -19,12 +19,14 @@ if (result != PcanStatus.OK)
 }
 
 // 初始化成功
-_logger.Info("通道 {channel} 表示的硬件已成功初始化", channel);
+_logger.Info($"通道 {channel} 表示的硬件已成功初始化", channel);
 Console.ReadKey();
 
 // 创建控制器实例
 var motor = new Controller(0, 127, channel);
-
+Console.ReadKey();
+motor.StartReceiveThread();
+_logger.Info("开启接收数据的线程");
 /////////////////////////////////////////////////////////////////////////////////////
 //以下为测试代码
 ////////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +93,7 @@ _logger.Info("写入转到位置0");
 //Console.WriteLine("按任意键停止电机");
 //Console.ReadKey(); // 等待用户按下任意键
 
-
+Console.ReadKey();
 motor.DisableMotor();
 _logger.Info("写入停止电机");
 
