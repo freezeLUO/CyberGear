@@ -1,9 +1,6 @@
 using CyberGear.Control.Params;
-using CyberGear.Control.Protocols;
 using FluentAssertions;
-using Peak.Can.Basic;
 using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
 
 namespace CyberGear.Control.Tests
 {
@@ -15,8 +12,7 @@ namespace CyberGear.Control.Tests
 		[Fact]
 		public void GetArbitrationId_Ok()
 		{
-			var motor = new Controller(0, 127, PcanChannel.Usb01);
-			var actual = motor.GetArbitrationId(CmdMode.SET_MECHANICAL_ZERO);
+			var actual = Controller.GetArbitrationId(CmdMode.SET_MECHANICAL_ZERO, 0, 127);
 			actual.Should().Be(0x0600007f);
 		}
 
@@ -24,10 +20,9 @@ namespace CyberGear.Control.Tests
 		/// 写入参数
 		/// </summary>
 		[Fact]
-		public void WriteSingleParam_Greater_NOk()
+		public void ValidateParam_Greater_NOk()
 		{
-			var motor = new Controller(0, 127, PcanChannel.Usb01);
-			Action action = () => motor.WriteParam(new SpdRefParam(40), 2000);
+			Action action = () => Controller.ValidateParam(new SpdRefParam(40));
 			action.Should().Throw<ArgumentOutOfRangeException>();
 		}
 
@@ -35,10 +30,9 @@ namespace CyberGear.Control.Tests
 		/// 写入参数
 		/// </summary>
 		[Fact]
-		public void WriteSingleParam_Less_NOk()
+		public void ValidateParam_Less_NOk()
 		{
-			var motor = new Controller(0, 127, PcanChannel.Usb01);
-			Action action = () => motor.WriteParam(new SpdRefParam(-40), 2000);
+			Action action = () => Controller.ValidateParam(new SpdRefParam(-40));
 			action.Should().Throw<ArgumentOutOfRangeException>();
 		}
 

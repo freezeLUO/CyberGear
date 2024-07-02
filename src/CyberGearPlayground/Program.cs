@@ -22,16 +22,6 @@ if (result != PcanStatus.OK)
 _logger.Info("通道 {channel} 表示的硬件已成功初始化", channel);
 Console.ReadKey();
 
-// 创建接收器实例
-PcanReceiver receiver = new PcanReceiver(channel);
-if (receiver.Start())
-{
-	_logger.Info("接收器已启动，如果需要结束接收器进程，请调用receiver.Stop()函数");
-}
-else
-{
-	_logger.Warn("接收器启动失败");
-}
 // 创建控制器实例
 var motor = new Controller(0, 127, channel);
 
@@ -105,15 +95,4 @@ _logger.Info("写入转到位置0");
 motor.DisableMotor();
 _logger.Info("写入停止电机");
 
-// 当不再需要硬件时，将完成与硬件的连接
-result = Api.Uninitialize(channel);
-if (result != PcanStatus.OK)
-{
-	// 发生错误
-	Api.GetErrorText(result, out var errorText);
-	_logger.Warn("通道 {channel} 表示的硬件关闭失败: {eror}", channel, errorText);
-}
-else
-{
-	_logger.Info("通道 {channel} 表示的硬件已成功关闭", channel);
-}
+motor.Dispose();

@@ -1,6 +1,8 @@
 ﻿using Peak.Can.Basic;
 using System.Diagnostics;
 using CyberGear.Control.Params;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace CyberGear.Control
 {
@@ -11,7 +13,7 @@ namespace CyberGear.Control
 	/// 该类提供了一系列方法，包括发送和接收CAN消息，解析接收到的消息，
 	/// 以及处理与主控制器和电机相关的逻辑。
 	/// </remarks>
-	public class Controller
+	public class Controller : IDisposable
 	{
 		/// <summary>
 		/// 主控制器CANID
@@ -57,6 +59,13 @@ namespace CyberGear.Control
 		/// </summary>
 		private const double T_MAX = 12.0;
 
+
+		private readonly EventWaitHandle _receiveEvent;
+		private Thread? _receiveThread;
+		private bool _isRunning;
+		private bool _disposed;
+
+
 		/// <summary>
 		/// 构造函数
 		/// </summary>
@@ -69,6 +78,76 @@ namespace CyberGear.Control
 			_motorCANID = motorCANID;
 			_channel = channel;
 			_mre = new ManualResetEvent(true);
+			_receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+
+			// Windows操作系统
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				// 在Windows操作系统上，直接设置接收事件
+				if (Api.SetValue(_channel, PcanParameter.ReceiveEvent, (uint)_receiveEvent.SafeWaitHandle.DangerousGetHandle().ToInt32()) != PcanStatus.OK)
+				{
+					Debug.WriteLine($"在通道 {_channel} 上配置接收事件时出错。");
+					Api.Uninitialize(_channel);
+					throw new InvalidOperationException($"channel {_channel} initialize failed");
+				}
+			}
+			// 在非Windows操作系统上，获取接收事件句柄并进行设置
+			else
+			{
+				if (Api.GetValue(_channel, PcanParameter.ReceiveEvent, out uint eventHandle) != PcanStatus.OK)
+				{
+					Debug.WriteLine($"在通道 {_channel} 上获取接收事件时出错。");
+					Api.Uninitialize(_channel);
+					throw new InvalidOperationException($"channel {_channel} initialize failed");
+				}
+
+				_receiveEvent.SafeWaitHandle.Close();
+				_receiveEvent.SafeWaitHandle = new SafeWaitHandle(new IntPtr(eventHandle), false);
+			}
+		}
+
+		/// <summary>
+		/// 开始接收数据
+		/// </summary>
+		private void StartReceive()
+		{
+			_receiveThread = new Thread(ReceiveThread);
+			_receiveThread.Start();
+			_isRunning = true;
+		}
+
+		/// <summary>
+		/// 停止接受数据
+		/// </summary>
+		private void StopReceive()
+		{
+			// 停止接收线程并进行清理
+			_isRunning = false;
+			_receiveThread?.Join();
+			var result = Api.Uninitialize(_channel);
+			if (result != PcanStatus.OK)
+			{
+				Api.GetErrorText(result, out var errorText);
+				Debug.WriteLine($"通道 {_channel} 硬件关闭失败: {errorText}");
+			}
+		}
+
+		/// <summary>
+		/// 接收数据
+		/// </summary>
+		private void ReceiveThread()
+		{
+			while (_isRunning)
+			{
+				// 读取并处理接收缓冲区中的所有CAN消息
+				while (Api.Read(_channel, out var canMessage, out var canTimestamp) == PcanStatus.OK)
+				{
+					Debug.WriteLine($"Timestamp: {canTimestamp}, 消息: ID=0x{canMessage.ID:X}, 数据={BitConverter.ToString(canMessage.Data)}");
+					var result = Controller.ParseReceivedMsg(canMessage.Data, canMessage.ID);
+					_mre.Set();
+					Debug.WriteLine($"解析结果为：Motor CAN ID: {result.Item1}, Position: {result.Item2} rad, Velocity: {result.Item3} rad/s, Torque: {result.Item4} Nm");
+				}
+			}
 		}
 
 		/// <summary>
@@ -80,7 +159,7 @@ namespace CyberGear.Control
 		internal void CanSend(CmdMode cmdMode, byte[] data, int timeoutMilliseconds)
 		{
 			// 计算仲裁ID
-			uint arbitrationId = GetArbitrationId(cmdMode);
+			uint arbitrationId = GetArbitrationId(cmdMode, _masterCANID, _motorCANID);
 			// 一条CAN消息结构
 			PcanMessage canMessage = new PcanMessage
 			{
@@ -101,7 +180,7 @@ namespace CyberGear.Control
 			{
 				Thread.Sleep(timeoutMilliseconds);
 				// 已经完成后, 不要干涉后续的 mre
-				if(!isReplyOK)
+				if (!isReplyOK)
 					_mre.Set();
 			})
 			{ IsBackground = true };
@@ -130,8 +209,8 @@ namespace CyberGear.Control
 		/// </summary>
 		/// <param name="cmdMode"></param>
 		/// <returns></returns>
-		public uint GetArbitrationId(CmdMode cmdMode) =>
-			(uint)cmdMode << 24 | _masterCANID << 8 | _motorCANID;
+		internal static uint GetArbitrationId(CmdMode cmdMode, uint masterCANID, uint motorCANID) =>
+			(uint)cmdMode << 24 | masterCANID << 8 | motorCANID;
 
 		/// <summary>
 		/// 解析接收到的CAN消息。
@@ -164,6 +243,20 @@ namespace CyberGear.Control
 		}
 
 		/// <summary>
+		/// 检验限制类型
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="limitParam"></param>
+		/// <exception cref="ArgumentOutOfRangeException"></exception>
+		internal static void ValidateParam<T>(ILimitParam<T> limitParam) where T : struct, IComparable<T>
+		{
+			// 校验
+			if (limitParam.Value.CompareTo(limitParam.MinValue) < 0
+				|| limitParam.Value.CompareTo(limitParam.MaxValue) > 0)
+				throw new ArgumentOutOfRangeException($"Value should between {limitParam.MinValue} and {limitParam.MaxValue}");
+		}
+
+		/// <summary>
 		/// 写入参数
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
@@ -172,12 +265,7 @@ namespace CyberGear.Control
 		{
 			var limitParam = param as ILimitParam<T>;
 			if (limitParam is not null)
-			{
-				// 校验
-				if (limitParam.Value.CompareTo(limitParam.MinValue) < 0
-					|| limitParam.Value.CompareTo(limitParam.MaxValue) > 0)
-					throw new ArgumentOutOfRangeException($"Value should between {limitParam.MinValue} and {limitParam.MaxValue}");
-			}
+				ValidateParam(limitParam);
 			//发送CAN消息
 			CanSend(CmdMode.SINGLE_PARAM_WRITE, param.ToArray(), timeoutMilliseconds);
 		}
@@ -267,6 +355,9 @@ namespace CyberGear.Control
 		/// </summary>
 		public void EnableMotor(int timeoutMilliseconds = 2000)
 		{
+			if (_isRunning)
+				return;
+			StartReceive();
 			CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>(), timeoutMilliseconds);
 		}
 
@@ -275,7 +366,10 @@ namespace CyberGear.Control
 		/// </summary>
 		public void DisableMotor(int timeoutMilliseconds = 2000)
 		{
+			if (!_isRunning)
+				return;
 			CanSend(CmdMode.MOTOR_STOP, new byte[8], timeoutMilliseconds);
+			StopReceive();
 		}
 
 		/// <summary>
@@ -339,6 +433,27 @@ namespace CyberGear.Control
 			}
 			// Output details of the sent message
 			Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data1)}");
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!_disposed)
+			{
+				if (disposing)
+				{
+					StopReceive();
+				}
+
+				_receiveEvent.Dispose();
+				_mre.Dispose();
+				_disposed = true;
+			}
+		}
+
+		public void Dispose()
+		{
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
 		}
 	}
 }
