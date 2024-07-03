@@ -69,9 +69,10 @@ namespace CyberGear.Control
 		/// <summary>
 		/// 构造函数
 		/// </summary>
+		/// <param name="slotType">插槽类型</param>
+		/// <param name="slotIndex">插槽序号</param>
 		/// <param name="masterCANID"></param>
 		/// <param name="motorCANID">电机 canid</param>
-		/// <param name="channel">通道类型</param>
 		public Controller(SlotType slotType, int slotIndex, uint masterCANID, uint motorCANID)
 		{
 			if (!TryParseToPcanChannel(slotType, slotIndex, out var pcanChannel))
@@ -81,31 +82,6 @@ namespace CyberGear.Control
 			_motorCANID = motorCANID;
 			_mre = new ManualResetEvent(true);
 			_receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
-
-			// Windows操作系统
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-			{
-				// 在Windows操作系统上，直接设置接收事件
-				if (Api.SetValue(_channel, PcanParameter.ReceiveEvent, (uint)_receiveEvent.SafeWaitHandle.DangerousGetHandle().ToInt32()) != PcanStatus.OK)
-				{
-					Debug.WriteLine($"在通道 {_channel} 上配置接收事件时出错。");
-					Api.Uninitialize(_channel);
-					throw new InvalidOperationException($"channel {_channel} initialize failed");
-				}
-			}
-			// 在非Windows操作系统上，获取接收事件句柄并进行设置
-			else
-			{
-				if (Api.GetValue(_channel, PcanParameter.ReceiveEvent, out uint eventHandle) != PcanStatus.OK)
-				{
-					Debug.WriteLine($"在通道 {_channel} 上获取接收事件时出错。");
-					Api.Uninitialize(_channel);
-					throw new InvalidOperationException($"channel {_channel} initialize failed");
-				}
-
-				_receiveEvent.SafeWaitHandle.Close();
-				_receiveEvent.SafeWaitHandle = new SafeWaitHandle(new IntPtr(eventHandle), false);
-			}
 		}
 
 		/// <summary>
@@ -141,6 +117,7 @@ namespace CyberGear.Control
 		/// <summary>
 		/// 初始化
 		/// </summary>
+		/// <param name="bitrate"></param>
 		public bool Init(Bitrate bitrate)
 		{
 			if (_isRunning)
@@ -151,8 +128,33 @@ namespace CyberGear.Control
 			if (result != PcanStatus.OK)
 			{
 				Api.GetErrorText(result, out var errorText);
-				Console.WriteLine(errorText);
+				Debug.WriteLine($"初始化通道 {_channel} 错误: {errorText}");
 				return false;
+			}
+
+			// Windows操作系统
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				// 在Windows操作系统上，直接设置接收事件
+				if (Api.SetValue(_channel, PcanParameter.ReceiveEvent, (uint)_receiveEvent.SafeWaitHandle.DangerousGetHandle().ToInt32()) != PcanStatus.OK)
+				{
+					Debug.WriteLine($"在通道 {_channel} 上配置接收事件时出错。");
+					Api.Uninitialize(_channel);
+					throw new InvalidOperationException($"channel {_channel} initialize failed");
+				}
+			}
+			// 在非Windows操作系统上，获取接收事件句柄并进行设置
+			else
+			{
+				if (Api.GetValue(_channel, PcanParameter.ReceiveEvent, out uint eventHandle) != PcanStatus.OK)
+				{
+					Debug.WriteLine($"在通道 {_channel} 上获取接收事件时出错。");
+					Api.Uninitialize(_channel);
+					throw new InvalidOperationException($"channel {_channel} initialize failed");
+				}
+
+				_receiveEvent.SafeWaitHandle.Close();
+				_receiveEvent.SafeWaitHandle = new SafeWaitHandle(new IntPtr(eventHandle), false);
 			}
 			_receiveThread = new Thread(ReceiveThread);
 			_receiveThread.Start();
