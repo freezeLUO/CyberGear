@@ -1,36 +1,22 @@
 ﻿using CyberGear.Control;
 using CyberGear.Control.Params;
 using NLog;
-using Peak.Can.Basic;
 
 var _logger = LogManager.GetCurrentClassLogger();
 
 _logger.Info("程序启动");
 
-PcanChannel channel = PcanChannel.Usb01;
+// 创建控制器实例
+var motor = new Controller(SlotType.Usb, 1, 0, 127);
 
-// 硬件以1000k bit/s初始化
-PcanStatus result = Api.Initialize(channel, Bitrate.Pcan1000);
-if (result != PcanStatus.OK)
+if (motor.Init(Bitrate.Pcan1000))
 {
-	Api.GetErrorText(result, out var errorText);
-	Console.WriteLine(errorText);
+	_logger.Info("初始化失败");
 	return;
 }
+_logger.Info("初始化成功");
 
-// 初始化成功
-_logger.Info($"通道 {channel} 表示的硬件已成功初始化", channel);
-Console.ReadKey();
-
-// 创建控制器实例
-var motor = new Controller(0, 127, channel);
-Console.ReadKey();
-motor.StartReceiveThread();
-_logger.Info("开启接收数据的线程");
-/////////////////////////////////////////////////////////////////////////////////////
-//以下为测试代码
-////////////////////////////////////////////////////////////////////////////////////
-
+#region 以下为测试代码
 Console.ReadKey();
 //设置机械零点
 motor.SetMechanicalZero();
@@ -97,4 +83,7 @@ Console.ReadKey();
 motor.DisableMotor();
 _logger.Info("写入停止电机");
 
+motor.Stop();
+
 motor.Dispose();
+#endregion

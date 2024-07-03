@@ -72,11 +72,13 @@ namespace CyberGear.Control
 		/// <param name="masterCANID"></param>
 		/// <param name="motorCANID">电机 canid</param>
 		/// <param name="channel">通道类型</param>
-		public Controller(uint masterCANID, uint motorCANID, PcanChannel channel)
+		public Controller(SlotType slotType, int slotIndex, uint masterCANID, uint motorCANID)
 		{
+			if (!TryParseToPcanChannel(slotType, slotIndex, out var pcanChannel))
+				throw new ArgumentOutOfRangeException("slotIndex must between 1 and 16");
+			_channel = pcanChannel.Value;
 			_masterCANID = masterCANID;
 			_motorCANID = motorCANID;
-			_channel = channel;
 			_mre = new ManualResetEvent(true);
 			_receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
 
@@ -107,30 +109,73 @@ namespace CyberGear.Control
 		}
 
 		/// <summary>
-		/// 开始接收数据
+		/// 尝试转化成 PcanChannel
 		/// </summary>
-		private void StartReceive()
+		/// <param name="slotType"></param>
+		/// <param name="slotIndex"></param>
+		/// <param name="pcanChannel"></param>
+		/// <returns></returns>
+		internal static bool TryParseToPcanChannel(SlotType slotType, int slotIndex, out PcanChannel? pcanChannel)
 		{
+			if (slotIndex < 1 || slotIndex > 16)
+			{
+				pcanChannel = null;
+				return false;
+			}
+			else
+			{
+				var str = slotType.ToString() + slotIndex.ToString("D2");
+				if (Enum.TryParse<PcanChannel>(str, true, out PcanChannel value))
+				{
+					pcanChannel = value;
+					return true;
+				}
+				else
+				{
+					pcanChannel = null;
+					return false;
+				}
+			}
+		}
+
+		/// <summary>
+		/// 初始化
+		/// </summary>
+		public bool Init(Bitrate bitrate)
+		{
+			if (_isRunning)
+				return false;
+			var bitrateValue = Enum.Parse<Peak.Can.Basic.Bitrate>(bitrate.ToString());
+			// 硬件以1000k bit/s初始化
+			PcanStatus result = Api.Initialize(_channel, bitrateValue);
+			if (result != PcanStatus.OK)
+			{
+				Api.GetErrorText(result, out var errorText);
+				Console.WriteLine(errorText);
+				return false;
+			}
 			_receiveThread = new Thread(ReceiveThread);
 			_receiveThread.Start();
 			_isRunning = true;
+			return true;
 		}
 
-        /// <summary>
-        /// 开启接受数据线程
-        /// </summary>
-        public void StartReceiveThread()
-        {
-            StartReceive();
-        }
+		/// <summary>
+		/// 停止
+		/// </summary>
+		public void Stop()
+			=> StopReceive();
 
-        /// <summary>
-        /// 停止接受数据
-        /// </summary>
-        private void StopReceive()
+		/// <summary>
+		/// 停止接受数据
+		/// </summary>
+		private void StopReceive()
 		{
+			if (!_isRunning)
+				return;
 			// 停止接收线程并进行清理
 			_isRunning = false;
+			_receiveEvent.Set();
 			_receiveThread?.Join();
 			var result = Api.Uninitialize(_channel);
 			if (result != PcanStatus.OK)
@@ -140,11 +185,10 @@ namespace CyberGear.Control
 			}
 		}
 
-
-        /// <summary>
-        /// 接收数据
-        /// </summary>
-        private void ReceiveThread()
+		/// <summary>
+		/// 接收数据
+		/// </summary>
+		private void ReceiveThread()
 		{
 			while (_isRunning)
 			{
@@ -272,6 +316,8 @@ namespace CyberGear.Control
 		/// <param name="param"></param>
 		public void WriteParam<T>(IParam<T> param, int timeoutMilliseconds) where T : struct, IComparable<T>
 		{
+			if (!_isRunning)
+				return;
 			var limitParam = param as ILimitParam<T>;
 			if (limitParam is not null)
 				ValidateParam(limitParam);
@@ -364,9 +410,8 @@ namespace CyberGear.Control
 		/// </summary>
 		public void EnableMotor(int timeoutMilliseconds = 2000)
 		{
-			//if (_isRunning)
-			//	return;
-			//StartReceive();
+			if (!_isRunning)
+				return;
 			CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>(), timeoutMilliseconds);
 		}
 
@@ -378,7 +423,6 @@ namespace CyberGear.Control
 			if (!_isRunning)
 				return;
 			CanSend(CmdMode.MOTOR_STOP, new byte[8], timeoutMilliseconds);
-			//StopReceive();
 		}
 
 		/// <summary>
@@ -386,6 +430,8 @@ namespace CyberGear.Control
 		/// </summary>
 		public void SetMechanicalZero(int timeoutMilliseconds = 2000)
 		{
+			if (!_isRunning)
+				return;
 			CanSend(CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 }, timeoutMilliseconds);
 		}
 

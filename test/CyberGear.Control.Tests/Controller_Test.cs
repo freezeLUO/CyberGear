@@ -122,5 +122,16 @@ namespace CyberGear.Control.Tests
 			};
 			action.Should().NotThrow<TimeoutException>();
 		}
+
+		/// <summary>
+		/// º∆À„÷Ÿ≤√”Ú
+		/// </summary>
+		[Fact]
+		public void TryParseToPcanChannel_Ok()
+		{
+			var acutal = Controller.TryParseToPcanChannel(SlotType.Usb, 1, out var pcanChannel);
+			acutal.Should().BeTrue();
+			pcanChannel.Should().Be(Peak.Can.Basic.PcanChannel.Usb01);
+		}
 	}
 }
