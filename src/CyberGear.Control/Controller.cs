@@ -3,6 +3,7 @@ using System.Diagnostics;
 using CyberGear.Control.Params;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using CyberGear.Control.Protocols;
 
 namespace CyberGear.Control
 {
@@ -34,31 +35,6 @@ namespace CyberGear.Control
 
 		private readonly ManualResetEvent _mre;
 
-		/// <summary>
-		/// 位置最小值
-		/// </summary>
-		private const double P_MIN = -4 * Math.PI;
-		/// <summary>
-		/// 位置最大值
-		/// </summary>
-		private const double P_MAX = 4 * Math.PI;
-		/// <summary>
-		/// 速度最小值
-		/// </summary>
-		private const double V_MIN = -30.0;
-		/// <summary>
-		/// 速度最大值
-		/// </summary>
-		private const double V_MAX = 30.0;
-		/// <summary>
-		/// 力矩最小值
-		/// </summary>
-		private const double T_MIN = -12.0;
-		/// <summary>
-		/// 力矩最大值
-		/// </summary>
-		private const double T_MAX = 12.0;
-
 
 		private readonly EventWaitHandle _receiveEvent;
 		private Thread? _receiveThread;
@@ -85,7 +61,7 @@ namespace CyberGear.Control
 		}
 
 		/// <summary>
-		/// 尝试转化成 PcanChannel
+		/// 尝试转化成 <typeparamref name="PcanChannel"/>
 		/// </summary>
 		/// <param name="slotType"></param>
 		/// <param name="slotIndex"></param>
@@ -198,9 +174,12 @@ namespace CyberGear.Control
 				while (Api.Read(_channel, out var canMessage, out var canTimestamp) == PcanStatus.OK)
 				{
 					Debug.WriteLine($"Timestamp: {canTimestamp}, 消息: ID=0x{canMessage.ID:X}, 数据={BitConverter.ToString(canMessage.Data)}");
-					var result = Controller.ParseReceivedMsg(canMessage.Data, canMessage.ID);
+					// 解析电机CAN ID
+					byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
+					// 解析位置、速度和力矩
+					var rd = ResponseData.Parse(canMessage.Data);
+					Debug.WriteLine($"Motor CAN ID: {motor_can_id}, pos: {rd.Angle:.2f} rad, vel: {rd.AngularVelocity:.2f} rad/s, kp: {rd.Kp:.2f}, kd: {rd.Kd}");
 					_mre.Set();
-					Debug.WriteLine($"解析结果为：Motor CAN ID: {result.Item1}, Position: {result.Item2} rad, Velocity: {result.Item3} rad/s, Torque: {result.Item4} Nm");
 				}
 			}
 		}
@@ -266,36 +245,6 @@ namespace CyberGear.Control
 		/// <returns></returns>
 		internal static uint GetArbitrationId(CmdMode cmdMode, uint masterCANID, uint motorCANID) =>
 			(uint)cmdMode << 24 | masterCANID << 8 | motorCANID;
-
-		/// <summary>
-		/// 解析接收到的CAN消息。
-		/// </summary>
-		/// <param name="data">接收到的数据。</param>
-		/// <param name="arbitration_id">接收到的消息的仲裁ID。</param>
-		/// <returns>返回一个元组，包含电机的CAN ID、位置（以弧度为单位）、速度（以弧度每秒为单位）和扭矩（以牛米为单位）。</returns>
-		public static Tuple<byte, double, double, double> ParseReceivedMsg(byte[] data, uint arbitration_id)
-		{
-			if (data.Length > 0)
-			{
-				Debug.WriteLine($"Received message with ID 0x{arbitration_id:X}");
-
-				// 解析电机CAN ID
-				byte motor_can_id = (byte)(arbitration_id >> 8 & 0xFF);
-				// 解析位置、速度和力矩
-				double pos = Calculate.UToF((data[0] << 8) + data[1], P_MIN, P_MAX);
-				double vel = Calculate.UToF((data[2] << 8) + data[3], V_MIN, V_MAX);
-				double torque = Calculate.UToF((data[4] << 8) + data[5], T_MIN, T_MAX);
-
-				Debug.WriteLine($"Motor CAN ID: {motor_can_id}, pos: {pos:.2f} rad, vel: {vel:.2f} rad/s, torque: {torque:.2f} Nm");
-
-				return new Tuple<byte, double, double, double>(motor_can_id, pos, vel, torque);
-			}
-			else
-			{
-				Debug.WriteLine("No message received within the timeout period.");
-				return new Tuple<byte, double, double, double>(0, 0, 0, 0);
-			}
-		}
 
 		/// <summary>
 		/// 检验限制类型

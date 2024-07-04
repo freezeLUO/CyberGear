@@ -124,7 +124,7 @@ namespace CyberGear.Control.Tests
 		}
 
 		/// <summary>
-		/// 计算仲裁域
+		/// 尝试转化成 PcanChannel
 		/// </summary>
 		[Fact]
 		public void TryParseToPcanChannel_Ok()
