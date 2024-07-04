@@ -3,6 +3,7 @@ using System.Diagnostics;
 using CyberGear.Control.Params;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using CyberGear.Control.Protocols;
 
 namespace CyberGear.Control
 {
@@ -34,31 +35,6 @@ namespace CyberGear.Control
 
 		private readonly ManualResetEvent _mre;
 
-		/// <summary>
-		/// 位置最小值
-		/// </summary>
-		private const double P_MIN = -4 * Math.PI;
-		/// <summary>
-		/// 位置最大值
-		/// </summary>
-		private const double P_MAX = 4 * Math.PI;
-		/// <summary>
-		/// 速度最小值
-		/// </summary>
-		private const double V_MIN = -30.0;
-		/// <summary>
-		/// 速度最大值
-		/// </summary>
-		private const double V_MAX = 30.0;
-		/// <summary>
-		/// 力矩最小值
-		/// </summary>
-		private const double T_MIN = -12.0;
-		/// <summary>
-		/// 力矩最大值
-		/// </summary>
-		private const double T_MAX = 12.0;
-
 
 		private readonly EventWaitHandle _receiveEvent;
 		private Thread? _receiveThread;
@@ -69,16 +45,68 @@ namespace CyberGear.Control
 		/// <summary>
 		/// 构造函数
 		/// </summary>
+		/// <param name="slotType">插槽类型</param>
+		/// <param name="slotIndex">插槽序号</param>
 		/// <param name="masterCANID"></param>
 		/// <param name="motorCANID">电机 canid</param>
-		/// <param name="channel">通道类型</param>
-		public Controller(uint masterCANID, uint motorCANID, PcanChannel channel)
+		public Controller(SlotType slotType, int slotIndex, uint masterCANID, uint motorCANID)
 		{
+			if (!TryParseToPcanChannel(slotType, slotIndex, out var pcanChannel))
+				throw new ArgumentOutOfRangeException("slotIndex must between 1 and 16");
+			_channel = pcanChannel.Value;
 			_masterCANID = masterCANID;
 			_motorCANID = motorCANID;
-			_channel = channel;
 			_mre = new ManualResetEvent(true);
 			_receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+		}
+
+		/// <summary>
+		/// 尝试转化成 <typeparamref name="PcanChannel"/>
+		/// </summary>
+		/// <param name="slotType"></param>
+		/// <param name="slotIndex"></param>
+		/// <param name="pcanChannel"></param>
+		/// <returns></returns>
+		internal static bool TryParseToPcanChannel(SlotType slotType, int slotIndex, out PcanChannel? pcanChannel)
+		{
+			if (slotIndex < 1 || slotIndex > 16)
+			{
+				pcanChannel = null;
+				return false;
+			}
+			else
+			{
+				var str = slotType.ToString() + slotIndex.ToString("D2");
+				if (Enum.TryParse<PcanChannel>(str, true, out PcanChannel value))
+				{
+					pcanChannel = value;
+					return true;
+				}
+				else
+				{
+					pcanChannel = null;
+					return false;
+				}
+			}
+		}
+
+		/// <summary>
+		/// 初始化
+		/// </summary>
+		/// <param name="bitrate"></param>
+		public bool Init(Bitrate bitrate)
+		{
+			if (_isRunning)
+				return false;
+			var bitrateValue = Enum.Parse<Peak.Can.Basic.Bitrate>(bitrate.ToString());
+			// 硬件以1000k bit/s初始化
+			PcanStatus result = Api.Initialize(_channel, bitrateValue);
+			if (result != PcanStatus.OK)
+			{
+				Api.GetErrorText(result, out var errorText);
+				Debug.WriteLine($"初始化通道 {_channel} 错误: {errorText}");
+				return false;
+			}
 
 			// Windows操作系统
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -104,33 +132,28 @@ namespace CyberGear.Control
 				_receiveEvent.SafeWaitHandle.Close();
 				_receiveEvent.SafeWaitHandle = new SafeWaitHandle(new IntPtr(eventHandle), false);
 			}
-		}
-
-		/// <summary>
-		/// 开始接收数据
-		/// </summary>
-		private void StartReceive()
-		{
 			_receiveThread = new Thread(ReceiveThread);
 			_receiveThread.Start();
 			_isRunning = true;
+			return true;
 		}
 
-        /// <summary>
-        /// 开启接受数据线程
-        /// </summary>
-        public void StartReceiveThread()
-        {
-            StartReceive();
-        }
+		/// <summary>
+		/// 停止
+		/// </summary>
+		public void Stop()
+			=> StopReceive();
 
-        /// <summary>
-        /// 停止接受数据
-        /// </summary>
-        private void StopReceive()
+		/// <summary>
+		/// 停止接受数据
+		/// </summary>
+		private void StopReceive()
 		{
+			if (!_isRunning)
+				return;
 			// 停止接收线程并进行清理
 			_isRunning = false;
+			_receiveEvent.Set();
 			_receiveThread?.Join();
 			var result = Api.Uninitialize(_channel);
 			if (result != PcanStatus.OK)
@@ -140,11 +163,10 @@ namespace CyberGear.Control
 			}
 		}
 
-
-        /// <summary>
-        /// 接收数据
-        /// </summary>
-        private void ReceiveThread()
+		/// <summary>
+		/// 接收数据
+		/// </summary>
+		private void ReceiveThread()
 		{
 			while (_isRunning)
 			{
@@ -152,9 +174,12 @@ namespace CyberGear.Control
 				while (Api.Read(_channel, out var canMessage, out var canTimestamp) == PcanStatus.OK)
 				{
 					Debug.WriteLine($"Timestamp: {canTimestamp}, 消息: ID=0x{canMessage.ID:X}, 数据={BitConverter.ToString(canMessage.Data)}");
-					var result = Controller.ParseReceivedMsg(canMessage.Data, canMessage.ID);
+					// 解析电机CAN ID
+					byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
+					// 解析位置、速度和力矩
+					var rd = ResponseData.Parse(canMessage.Data);
+					Debug.WriteLine($"Motor CAN ID: {motor_can_id}, pos: {rd.Angle:.2f} rad, vel: {rd.AngularVelocity:.2f} rad/s, kp: {rd.Kp:.2f}, kd: {rd.Kd}");
 					_mre.Set();
-					Debug.WriteLine($"解析结果为：Motor CAN ID: {result.Item1}, Position: {result.Item2} rad, Velocity: {result.Item3} rad/s, Torque: {result.Item4} Nm");
 				}
 			}
 		}
@@ -222,36 +247,6 @@ namespace CyberGear.Control
 			(uint)cmdMode << 24 | masterCANID << 8 | motorCANID;
 
 		/// <summary>
-		/// 解析接收到的CAN消息。
-		/// </summary>
-		/// <param name="data">接收到的数据。</param>
-		/// <param name="arbitration_id">接收到的消息的仲裁ID。</param>
-		/// <returns>返回一个元组，包含电机的CAN ID、位置（以弧度为单位）、速度（以弧度每秒为单位）和扭矩（以牛米为单位）。</returns>
-		public static Tuple<byte, double, double, double> ParseReceivedMsg(byte[] data, uint arbitration_id)
-		{
-			if (data.Length > 0)
-			{
-				Debug.WriteLine($"Received message with ID 0x{arbitration_id:X}");
-
-				// 解析电机CAN ID
-				byte motor_can_id = (byte)(arbitration_id >> 8 & 0xFF);
-				// 解析位置、速度和力矩
-				double pos = Calculate.UToF((data[0] << 8) + data[1], P_MIN, P_MAX);
-				double vel = Calculate.UToF((data[2] << 8) + data[3], V_MIN, V_MAX);
-				double torque = Calculate.UToF((data[4] << 8) + data[5], T_MIN, T_MAX);
-
-				Debug.WriteLine($"Motor CAN ID: {motor_can_id}, pos: {pos:.2f} rad, vel: {vel:.2f} rad/s, torque: {torque:.2f} Nm");
-
-				return new Tuple<byte, double, double, double>(motor_can_id, pos, vel, torque);
-			}
-			else
-			{
-				Debug.WriteLine("No message received within the timeout period.");
-				return new Tuple<byte, double, double, double>(0, 0, 0, 0);
-			}
-		}
-
-		/// <summary>
 		/// 检验限制类型
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
@@ -272,6 +267,8 @@ namespace CyberGear.Control
 		/// <param name="param"></param>
 		public void WriteParam<T>(IParam<T> param, int timeoutMilliseconds) where T : struct, IComparable<T>
 		{
+			if (!_isRunning)
+				return;
 			var limitParam = param as ILimitParam<T>;
 			if (limitParam is not null)
 				ValidateParam(limitParam);
@@ -364,9 +361,8 @@ namespace CyberGear.Control
 		/// </summary>
 		public void EnableMotor(int timeoutMilliseconds = 2000)
 		{
-			//if (_isRunning)
-			//	return;
-			//StartReceive();
+			if (!_isRunning)
+				return;
 			CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>(), timeoutMilliseconds);
 		}
 
@@ -378,7 +374,6 @@ namespace CyberGear.Control
 			if (!_isRunning)
 				return;
 			CanSend(CmdMode.MOTOR_STOP, new byte[8], timeoutMilliseconds);
-			//StopReceive();
 		}
 
 		/// <summary>
@@ -386,6 +381,8 @@ namespace CyberGear.Control
 		/// </summary>
 		public void SetMechanicalZero(int timeoutMilliseconds = 2000)
 		{
+			if (!_isRunning)
+				return;
 			CanSend(CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 }, timeoutMilliseconds);
 		}
 
