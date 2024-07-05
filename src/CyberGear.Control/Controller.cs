@@ -174,11 +174,44 @@ namespace CyberGear.Control
 				while (Api.Read(_channel, out var canMessage, out var canTimestamp) == PcanStatus.OK)
 				{
 					Debug.WriteLine($"Timestamp: {canTimestamp}, 消息: ID=0x{canMessage.ID:X}, 数据={BitConverter.ToString(canMessage.Data)}");
-					// 解析电机CAN ID
-					byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
-					// 解析位置、速度和力矩
-					var rd = ResponseData.Parse(canMessage.Data);
-					Debug.WriteLine($"Motor CAN ID: {motor_can_id}, pos: {rd.Angle:.2f} rad, vel: {rd.AngularVelocity:.2f} rad/s, kp: {rd.Kp:.2f}, kd: {rd.Kd}");
+                    //解析通讯类型, bit24-28
+					byte com_type = (byte)(canMessage.ID >> 24 & 0xFF);
+					//如果是电机反馈帧（2）
+                    if(com_type == 2)
+					{
+                        // 解析电机CAN ID, bit8-15
+                        byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
+                        // 解析主控制器CAN ID, bit0-7
+                        byte master_can_id = (byte)(canMessage.ID & 0xFF);
+                        // 解析位置、速度、力矩
+                        var rd = ResponseData.Parse(canMessage.Data);
+                        Debug.WriteLine($"Motor CAN ID: {motor_can_id}, Main CAN ID: {master_can_id}, pos: {rd.Angle:.2f} rad, vel: {rd.AngularVelocity:.2f} rad/s, Torque: {rd.Torque:.2f} N·m");
+                    }
+					//如果是单个参数读取应答帧（17）
+                    else if(com_type == 17)
+                    {
+                        // 解析电机CAN ID, bit8-15
+                        byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
+                        // 解析主控制器CAN ID, bit0-7
+                        byte master_can_id = (byte)(canMessage.ID & 0xFF);
+                        byte[] data = canMessage.Data;                       
+                        var rd = SingleResponseData.Parse(canMessage.Data);
+                        Debug.WriteLine($"参数索引: {rd.Index}, 参数值: {BitConverter.ToString(rd.value_bytes)}");
+                    }
+					//如果是故障反馈
+					else if(com_type == 21)
+                    {
+                        // 解析电机CAN ID, bit8-15
+                        byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
+                        // 解析主控制器CAN ID, bit0-7
+                        byte master_can_id = (byte)(canMessage.ID & 0xFF);
+                        byte[] data = canMessage.Data;
+                        Debug.WriteLine($"Motor CAN ID: {motor_can_id}, Main CAN ID: {master_can_id}, 故障反馈: {BitConverter.ToString(data)}");
+                    }
+					else
+                    {
+                        Debug.WriteLine("未知通讯类型");
+                    }
 					_mre.Set();
 				}
 			}

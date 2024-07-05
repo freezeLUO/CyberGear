@@ -13,18 +13,24 @@ namespace CyberGear.Control.Protocols
 	public readonly struct ResponseData
 	{
 		/// <summary>
-		/// 目标角度
+		/// 当前角度
 		/// </summary>
 		public double Angle { get; init; }
 
 		/// <summary>
-		/// 目标角速度
+		/// 当前角速度
 		/// </summary>
 		public double AngularVelocity { get; init; }
 
-		public double Kp { get; init; }
+        /// <summary>
+        /// 当前力矩
+        /// </summary>
+        public double Torque { get; init; }
 
-		public double Kd { get; init; }
+        ///// <summary>
+        ///// 当前温度
+        ///// </summary>
+        //public double Temp { get; init; }
 
 		public static ResponseData Parse(byte[] array)
 		{
@@ -32,8 +38,8 @@ namespace CyberGear.Control.Protocols
 			{
 				Angle = RangeConvetor(BinaryPrimitives.ReadUInt16BigEndian(array.AsSpan()[0..2]), ushort.MaxValue, -4, 4),
 				AngularVelocity = RangeConvetor(BinaryPrimitives.ReadUInt16BigEndian(array.AsSpan()[2..4]), ushort.MaxValue, -30, 30),
-				Kp = RangeConvetor(BinaryPrimitives.ReadUInt16BigEndian(array.AsSpan()[4..6]), ushort.MaxValue, 0, 500),
-				Kd = RangeConvetor(BinaryPrimitives.ReadUInt16BigEndian(array.AsSpan()[6..8]), ushort.MaxValue, 0, 500),
+                Torque = RangeConvetor(BinaryPrimitives.ReadUInt16BigEndian(array.AsSpan()[4..6]), ushort.MaxValue, -12, 12),
+                //Temp = RangeConvetor(BinaryPrimitives.ReadUInt16BigEndian(array.AsSpan()[6..8]), ushort.MaxValue, 0, 500),
 			};
 		}
 
@@ -56,4 +62,28 @@ namespace CyberGear.Control.Protocols
 			return mappedValue;
 		}
 	}
+
+    public readonly struct SingleResponseData
+    {
+        /// <summary>
+        /// 参数索引
+        /// </summary>
+        public ushort Index { get; init; }
+
+        /// <summary>
+        /// 数据数组
+        /// </summary>
+        public byte[] value_bytes { get; init; }
+
+
+        public static SingleResponseData Parse(byte[] array)
+        {
+			return new SingleResponseData
+			{
+				Index = BinaryPrimitives.ReadUInt16BigEndian(array.AsSpan()[0..2]),
+                value_bytes = array[4..8],
+			};
+        }
+
+    }
 }

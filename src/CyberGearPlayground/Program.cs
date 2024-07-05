@@ -6,10 +6,10 @@ var _logger = LogManager.GetCurrentClassLogger();
 
 _logger.Info("程序启动");
 
-// 创建控制器实例
+// 创建控制器实例, 参数依次为: 通信类型Pcan-Usb, 通道1, 上位机CANID, 电机CANID
 var motor = new Controller(SlotType.Usb, 1, 0, 127);
 
-if (motor.Init(Bitrate.Pcan1000))
+if (!motor.Init(Bitrate.Pcan1000))
 {
 	_logger.Info("初始化失败");
 	return;
