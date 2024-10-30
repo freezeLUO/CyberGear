@@ -3,17 +3,14 @@ using CyberGear.Control.Params;
 using CyberGear.Control.Protocols;
 using CyberGear.Control.ReceiveMessageType;
 using NLog;
-using System.Diagnostics;
-using static CyberGear.Control.Controller;
 
 var _logger = LogManager.GetCurrentClassLogger();
 
 _logger.Info("------程序启动------");
 
-// 创建控制器实例, 参数依次为: 通信类型Pcan-Usb, 通道1, 上位机CANID, 电机CANID, 接收消息超时时间
-var motor = new Controller(SlotType.Usb, 1);
+var bus = new CanBus(SlotType.Usb, 1, 0);
 
-if (!motor.Init(Bitrate.Pcan1000))
+if (!bus.Init(Bitrate.Pcan1000))
 {
 	_logger.Info("初始化失败");
 	return;
@@ -23,7 +20,7 @@ _logger.Info("初始化成功");
 #region 以下为测试代码
 Console.ReadKey();
 //设置机械零点，读取一次最新反馈数据
-IMessageType Messagedata = motor.SetMechanicalZero(0, 127);
+IMessageType Messagedata = motor.SetMechanicalZeroAsync(0, 127);
 _logger.Info("写入设置0点，并获取一次最新消息");
 switch (Messagedata)
 {
@@ -47,13 +44,13 @@ Console.ReadKey();
 //设置 `runmode` 参数为 1
 //- index(Byte0~1): `run_mode`，0x7005
 //- value(Byte4~7): 1(位置模式)
-motor.SetRunMode(0, 127, RunMode.POSITION_MODE);
+motor.SetRunModeAsync(0, 127, RunMode.POSITION_MODE);
 _logger.Info("写入位置模式");
 
 
 Console.ReadKey();
 // 启动
-motor.EnableMotor(0, 127);
+motor.EnableAsync(0, 127);
 _logger.Info("写入启动");
 
 
@@ -62,7 +59,7 @@ Console.ReadKey();
 //设置 `limit_spd` 参数为预设最大速度指令
 //- index(Byte0~1): `limit_spd`, 0x7017
 //- value(Byte4~7): `float` [0,30]rad / s
-motor.SetLimitSpdParam(0, 127, 3.1F);
+motor.SetLimitSpdParamAsync(0, 127, 3.1F);
 _logger.Info("写入速度");
 
 
@@ -72,7 +69,7 @@ Console.ReadKey();
 //- index(Byte0~1): `loc_ref`, 0x7016
 //- value(Byte4~7): `float` rad
 //int value2 = 1;
-IMessageType Messagedata1 = motor.SetLocRefParam(0, 127, 1.1F);
+IMessageType Messagedata1 = motor.SetLocRefParamAsync(0, 127, 1.1F);
 _logger.Info("写入转到位置 1.1 rad");
 switch (Messagedata1)
 {
@@ -90,12 +87,12 @@ switch (Messagedata1)
 }
 
 Console.ReadKey();
-motor.SetLocRefParam(0, 127, 2.0F);
+motor.SetLocRefParamAsync(0, 127, 2.0F);
 _logger.Info("写入转到位置 2.0 rad");
 
 
 Console.ReadKey();
-motor.SetLocRefParam(0, 127, 0.0F);
+motor.SetLocRefParamAsync(0, 127, 0.0F);
 _logger.Info("写入转到位置 0 rad");
 
 ///////////////////////////////////////////////////
@@ -126,11 +123,11 @@ _logger.Info("写入转到位置 0 rad");
 
 //失能电机并获取反馈数据队列
 Console.ReadKey();
-motor.DisableMotor(0, 127);
+motor.DisableAsync(0, 127);
 _logger.Info("写入停止电机");
 Thread.Sleep(50);
 
 //结束
-motor.Stop();//停止接收数据的线程
-motor.Dispose();//释放资源
+bus.Stop();//停止接收数据的线程
+bus.Dispose();//释放资源
 #endregion

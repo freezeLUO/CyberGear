@@ -12,7 +12,7 @@ namespace CyberGear.Control.Tests
 		[Fact]
 		public void GetArbitrationId_Ok()
 		{
-			var actual = Controller.GetArbitrationId(CmdMode.SET_MECHANICAL_ZERO, 0, 127);
+			var actual = CanBus.GetArbitrationId(CmdMode.SET_MECHANICAL_ZERO, 0, 127);
 			actual.Should().Be(0x0600007f);
 		}
 
@@ -22,7 +22,7 @@ namespace CyberGear.Control.Tests
 		[Fact]
 		public void ValidateParam_Greater_NOk()
 		{
-			Action action = () => Controller.ValidateParam(new SpdRefParam(40));
+			Action action = () => CanBus.ValidateParam(new SpdRefParam(40));
 			action.Should().Throw<ArgumentOutOfRangeException>();
 		}
 
@@ -32,7 +32,7 @@ namespace CyberGear.Control.Tests
 		[Fact]
 		public void ValidateParam_Less_NOk()
 		{
-			Action action = () => Controller.ValidateParam(new SpdRefParam(-40));
+			Action action = () => CanBus.ValidateParam(new SpdRefParam(-40));
 			action.Should().Throw<ArgumentOutOfRangeException>();
 		}
 
@@ -129,7 +129,7 @@ namespace CyberGear.Control.Tests
 		[Fact]
 		public void TryParseToPcanChannel_Ok()
 		{
-			var acutal = Controller.TryParseToPcanChannel(SlotType.Usb, 1, out var pcanChannel);
+			var acutal = CanBus.TryParseToPcanChannel(SlotType.Usb, 1, out var pcanChannel);
 			acutal.Should().BeTrue();
 			pcanChannel.Should().Be(Peak.Can.Basic.PcanChannel.Usb01);
 		}
