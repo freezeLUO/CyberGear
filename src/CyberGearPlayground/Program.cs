@@ -8,19 +8,17 @@ var _logger = LogManager.GetCurrentClassLogger();
 
 _logger.Info("------程序启动------");
 
-var bus = new CanBus(SlotType.Usb, 1, 0);
-
-if (!bus.Init(Bitrate.Pcan1000))
+var builder = CanBus.CreateBuilder(SlotType.Usb, 1);
+builder.Configure(opt =>
 {
-	_logger.Info("初始化失败");
-	return;
-}
+	opt.AddMotors(new uint[] { 127, 2 });
+});
+CanBus can = builder.Build();
 _logger.Info("初始化成功");
 
-#region 以下为测试代码
 Console.ReadKey();
 //设置机械零点，读取一次最新反馈数据
-IMessageType Messagedata = motor.SetMechanicalZeroAsync(0, 127);
+IMessageType Messagedata = await can.Motors[0].SetMechanicalZeroAsync();
 _logger.Info("写入设置0点，并获取一次最新消息");
 switch (Messagedata)
 {
@@ -44,13 +42,13 @@ Console.ReadKey();
 //设置 `runmode` 参数为 1
 //- index(Byte0~1): `run_mode`，0x7005
 //- value(Byte4~7): 1(位置模式)
-motor.SetRunModeAsync(0, 127, RunMode.POSITION_MODE);
+await can.Motors[0].SetRunModeAsync(RunMode.POSITION_MODE);
 _logger.Info("写入位置模式");
 
 
 Console.ReadKey();
 // 启动
-motor.EnableAsync(0, 127);
+await can.Motors[0].EnableAsync();
 _logger.Info("写入启动");
 
 
@@ -128,6 +126,5 @@ _logger.Info("写入停止电机");
 Thread.Sleep(50);
 
 //结束
-bus.Stop();//停止接收数据的线程
-bus.Dispose();//释放资源
-#endregion
+can.Stop();//停止接收数据的线程
+can.Dispose();//释放资源

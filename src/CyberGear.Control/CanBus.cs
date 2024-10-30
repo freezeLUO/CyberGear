@@ -20,76 +20,72 @@ namespace CyberGear.Control
 		/// CAN 通道
 		/// </summary>
 		private readonly PcanChannel _channel;
+
 		/// <summary>
 		/// CAN 通道
 		/// </summary>
 		public PcanChannel PcanChanne => _channel;
 
-		private readonly ManualResetEvent _mre;
-		private readonly EventWaitHandle _receiveEvent;
+		/// <summary>
+		/// 插口类型
+		/// </summary>
+		public readonly SlotType SlotType;
+
+		/// <summary>
+		/// 插槽序号
+		/// </summary>
+		public readonly int SlotIndex;
+
+		/// <summary>
+		/// 波特率
+		/// </summary>
+		public readonly Bitrate Bitrate;
+
+		/// <summary>
+		/// 电机
+		/// </summary>
+		private readonly Motor[] _motors;
+		/// <summary>
+		/// 电机
+		/// </summary>
+		public Motor[] Motors => _motors;
+
+		private readonly ManualResetEvent _mre = new ManualResetEvent(true);
+		private readonly EventWaitHandle _receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
 		private Thread? _receiveThread;
+		/// <summary>
+		/// 正在运行
+		/// </summary>
 		internal volatile bool _isRunning;
 		private bool _disposed;
 		private IMessageType _currentMessageData;
-		internal readonly uint _masterId;
+		public readonly uint MasterId;
 
 		private readonly SemaphoreSlim _semaphoreForSend = new SemaphoreSlim(1, 1);
 
 		/// <summary>
-		/// 用于管理CyberGear控制系统中的CAN总线通信
+		/// 生成建造者
 		/// </summary>
-		/// <param name="slotType">插槽类型</param>
+		/// <param name="slotType">插口类型</param>
 		/// <param name="slotIndex">插槽序号</param>
-		/// <param name="masterId">主控制器id</param>
-		public CanBus(SlotType slotType, int slotIndex, uint masterId)
-		{
-			if (!TryParseToPcanChannel(slotType, slotIndex, out var pcanChannel))
-				throw new ArgumentOutOfRangeException("slotIndex must between 1 and 16");
-			_channel = pcanChannel.Value;
-			_masterId = masterId;
-			_mre = new ManualResetEvent(true);
-			_receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
-		}
-
-		/// <summary>
-		/// 尝试转化成 <typeparamref name="PcanChannel"/>
-		/// </summary>
-		/// <param name="slotType"></param>
-		/// <param name="slotIndex"></param>
-		/// <param name="pcanChannel"></param>
 		/// <returns></returns>
-		internal static bool TryParseToPcanChannel(SlotType slotType, int slotIndex, out PcanChannel? pcanChannel)
-		{
-			if (slotIndex < 1 || slotIndex > 16)
-			{
-				pcanChannel = null;
-				return false;
-			}
-			else
-			{
-				var str = slotType.ToString() + slotIndex.ToString("D2");
-				if (Enum.TryParse(str, true, out PcanChannel value))
-				{
-					pcanChannel = value;
-					return true;
-				}
-				else
-				{
-					pcanChannel = null;
-					return false;
-				}
-			}
-		}
+		public static CanBusBuilder CreateBuilder(SlotType slotType, int slotIndex)
+			=> new CanBusBuilder(slotType, slotIndex);
 
-		/// <summary>
-		/// 初始化
-		/// </summary>
-		/// <param name="bitrate"></param>
-		public bool Init(Bitrate bitrate)
+		private CanBus() { }
+
+		internal CanBus(CanBusBuilder builder)
 		{
-			if (_isRunning)
-				return false;
-			var bitrateValue = Enum.Parse<Peak.Can.Basic.Bitrate>(bitrate.ToString());
+			if (!TryParseToPcanChannel(builder.SlotType, builder.SlotIndex, out var pcanChannel))
+				throw new ArgumentOutOfRangeException($"{nameof(builder.SlotIndex)} must between 1 and 16");
+			_channel = pcanChannel!.Value;
+			SlotType = builder.SlotType;
+			MasterId = builder.CanbusOption.MasterId;
+			SlotIndex = builder.SlotIndex;
+			Bitrate = builder.CanbusOption.Bitrate;
+			_motors = builder.CanbusOption.MotorIds.Select(x => new Motor(x, this)).ToArray();
+
+			var bitrateValue = Enum.Parse<Peak.Can.Basic.Bitrate>(Bitrate.ToString());
 			PcanStatus result = Api.Initialize(_channel, bitrateValue);
 			if (result != PcanStatus.OK)
 			{
@@ -125,7 +121,36 @@ namespace CyberGear.Control
 			_receiveThread = new Thread(ReceiveThread);
 			_receiveThread.Start();
 			_isRunning = true;
-			return true;
+		}
+
+		/// <summary>
+		/// 尝试转化成 <typeparamref name="PcanChannel"/>
+		/// </summary>
+		/// <param name="slotType"></param>
+		/// <param name="slotIndex"></param>
+		/// <param name="pcanChannel"></param>
+		/// <returns></returns>
+		internal static bool TryParseToPcanChannel(SlotType slotType, int slotIndex, out PcanChannel? pcanChannel)
+		{
+			if (slotIndex < 1 || slotIndex > 16)
+			{
+				pcanChannel = null;
+				return false;
+			}
+			else
+			{
+				var str = slotType.ToString() + slotIndex.ToString("D2");
+				if (Enum.TryParse(str, true, out PcanChannel value))
+				{
+					pcanChannel = value;
+					return true;
+				}
+				else
+				{
+					pcanChannel = null;
+					return false;
+				}
+			}
 		}
 
 		/// <summary>
@@ -221,7 +246,7 @@ namespace CyberGear.Control
 				await _semaphoreForSend.WaitAsync(cts.Token);
 
 				// 计算仲裁ID
-				uint arbitrationId = CalculateArbitrationId(cmdMode, _masterId, motorId);
+				uint arbitrationId = CalculateArbitrationId(cmdMode, MasterId, motorId);
 				// 一条CAN消息结构
 				var canMessage = new PcanMessage
 				{
@@ -263,13 +288,13 @@ namespace CyberGear.Control
 		/// <param name="Kp">比例增益</param>
 		/// <param name="Kd">微分增益</param>
 		/// <param name="timeoutMilliseconds">超时时间</param>
-		public IMessageType SendMotorControlCommand( 
+		public IMessageType SendMotorControlCommand(
 			uint motorId,
-			float torque, 
-			float target_angle, 
-			float target_velocity, 
-			float Kp, 
-			float Kd, 
+			float torque,
+			float target_angle,
+			float target_velocity,
+			float Kp,
+			float Kd,
 			int timeoutMilliseconds = 2000)
 		{
 			//生成29位的仲裁ID的组成部分
