@@ -18,14 +18,6 @@ namespace CyberGear.Control
 	public class Controller : IDisposable
 	{
 		/// <summary>
-		/// 主控制器CANID
-		/// </summary>
-		private readonly uint _masterCANID = 0;
-		/// <summary>
-		/// 电机CANID
-		/// </summary>
-		private readonly uint _motorCANID = 0;
-		/// <summary>
 		/// CAN 通道
 		/// </summary>
 		private readonly PcanChannel _channel;
@@ -39,24 +31,18 @@ namespace CyberGear.Control
 		private Thread? _receiveThread;
 		private bool _isRunning;
 		private bool _disposed;
-        private IMessageType _currentMessageData;
+		private IMessageType _currentMessageData;
 
-
-
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="slotType">插槽类型</param>
-        /// <param name="slotIndex">插槽序号</param>
-        /// <param name="masterCANID"></param>
-        /// <param name="motorCANID">电机 canid</param>
-        public Controller(SlotType slotType, int slotIndex, uint masterCANID, uint motorCANID)
+		/// <summary>
+		/// 构造函数
+		/// </summary>
+		/// <param name="slotType">插槽类型</param>
+		/// <param name="slotIndex">插槽序号</param>
+		public Controller(SlotType slotType, int slotIndex)
 		{
 			if (!TryParseToPcanChannel(slotType, slotIndex, out var pcanChannel))
 				throw new ArgumentOutOfRangeException("slotIndex must between 1 and 16");
 			_channel = pcanChannel.Value;
-			_masterCANID = masterCANID;
-			_motorCANID = motorCANID;
 			_mre = new ManualResetEvent(true);
 			_receiveEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
 		}
@@ -78,7 +64,7 @@ namespace CyberGear.Control
 			else
 			{
 				var str = slotType.ToString() + slotIndex.ToString("D2");
-				if (Enum.TryParse<PcanChannel>(str, true, out PcanChannel value))
+				if (Enum.TryParse(str, true, out PcanChannel value))
 				{
 					pcanChannel = value;
 					return true;
@@ -175,43 +161,43 @@ namespace CyberGear.Control
 				while (Api.Read(_channel, out var canMessage, out var canTimestamp) == PcanStatus.OK)
 				{
 					Debug.WriteLine($"Timestamp: {canTimestamp}, 消息: ID=0x{canMessage.ID:X}, 数据={BitConverter.ToString(canMessage.Data)}");
-                    // 解析通讯类型, bit24-28
-                    byte com_type = (byte)(canMessage.ID >> 24 & 0xFF);
+					// 解析通讯类型, bit24-28
+					byte com_type = (byte)(canMessage.ID >> 24 & 0xFF);
 					// 解析电机CAN ID, bit8-15
-                    byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
-                    // 解析主控制器CAN ID, bit0-7
-                    byte master_can_id = (byte)(canMessage.ID & 0xFF);
-                    //如果是电机反馈帧（2）
-                    if (com_type == 2)
+					byte motor_can_id = (byte)(canMessage.ID >> 8 & 0xFF);
+					// 解析主控制器CAN ID, bit0-7
+					byte master_can_id = (byte)(canMessage.ID & 0xFF);
+					//如果是电机反馈帧（2）
+					if (com_type == 2)
 					{
-                        // 解析位置、速度、力矩
-                        var rd = ResponseData.Parse(canMessage.Data);
-                        _currentMessageData = new MessageType<ResponseData>(canTimestamp, motor_can_id, master_can_id, com_type, rd);
-                        // 添加到队列
-                        //AddToFeedbackQueue(canTimestamp, canMessage.Data, rd);
-                        Debug.WriteLine($"Motor CAN ID: {motor_can_id}, Main CAN ID: {master_can_id}, pos: {rd.Angle:.2f} rad, vel: {rd.AngularVelocity:.2f} rad/s, Torque: {rd.Torque:.2f} N·m");
-                    }
+						// 解析位置、速度、力矩
+						var rd = ResponseData.Parse(canMessage.Data);
+						_currentMessageData = new MessageType<ResponseData>(canTimestamp, motor_can_id, master_can_id, com_type, rd);
+						// 添加到队列
+						//AddToFeedbackQueue(canTimestamp, canMessage.Data, rd);
+						Debug.WriteLine($"Motor CAN ID: {motor_can_id}, Main CAN ID: {master_can_id}, pos: {rd.Angle:.2f} rad, vel: {rd.AngularVelocity:.2f} rad/s, Torque: {rd.Torque:.2f} N·m");
+					}
 					//如果是单个参数读取应答帧（17）
-                    else if(com_type == 17)
-                    {
-                        //byte[] data = canMessage.Data;                       
-                        var rd = SingleResponseData.Parse(canMessage.Data);
-                        _currentMessageData = new MessageType<SingleResponseData>(canTimestamp, motor_can_id, master_can_id, com_type, rd);
-                        Debug.WriteLine($"参数索引: {rd.Index}, 参数值: {BitConverter.ToString(rd.value_bytes)}");
-                    }
+					else if (com_type == 17)
+					{
+						//byte[] data = canMessage.Data;                       
+						var rd = SingleResponseData.Parse(canMessage.Data);
+						_currentMessageData = new MessageType<SingleResponseData>(canTimestamp, motor_can_id, master_can_id, com_type, rd);
+						Debug.WriteLine($"参数索引: {rd.Index}, 参数值: {BitConverter.ToString(rd.value_bytes)}");
+					}
 					//如果是故障反馈
-					else if(com_type == 21)
-                    {
-                        byte[] data = canMessage.Data;
-                        //_currentMessageData = new MessageType<byte[]>(canTimestamp, motor_can_id, master_can_id, com_type, canMessage.Data);
-                        //Debug.WriteLine($"Motor CAN ID: {motor_can_id}, Main CAN ID: {master_can_id}, 故障反馈: {BitConverter.ToString(data)}");
-                        string byteDataString = BitConverter.ToString(data);
-                        throw new InvalidOperationException($"Motor {motor_can_id} Failure!!!The fault code is{byteDataString},Please refer to the manual");
-                    }
+					else if (com_type == 21)
+					{
+						byte[] data = canMessage.Data;
+						//_currentMessageData = new MessageType<byte[]>(canTimestamp, motor_can_id, master_can_id, com_type, canMessage.Data);
+						//Debug.WriteLine($"Motor CAN ID: {motor_can_id}, Main CAN ID: {master_can_id}, 故障反馈: {BitConverter.ToString(data)}");
+						string byteDataString = BitConverter.ToString(data);
+						throw new InvalidOperationException($"Motor {motor_can_id} Failure!!!The fault code is{byteDataString},Please refer to the manual");
+					}
 					else
-                    {
-                        Debug.WriteLine("未知通讯类型");
-                    }
+					{
+						Debug.WriteLine("未知通讯类型");
+					}
 					_mre.Set();
 				}
 			}
@@ -220,15 +206,17 @@ namespace CyberGear.Control
 		/// <summary>
 		/// 发送CAN消息。
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="cmdMode">仲裁ID通信类型</param>
 		/// <param name="data">CAN2.0数据区1</param>
 		/// <param name="timeoutMilliseconds">超时时间</param>
-		internal IMessageType CanSend(CmdMode cmdMode, byte[] data, int timeoutMilliseconds)
+		internal IMessageType CanSend(uint masterId, uint motorId, CmdMode cmdMode, byte[] data, int timeoutMilliseconds)
 		{
 			// 计算仲裁ID
-			uint arbitrationId = GetArbitrationId(cmdMode, _masterCANID, _motorCANID);
+			uint arbitrationId = GetArbitrationId(cmdMode, masterId, motorId);
 			// 一条CAN消息结构
-			PcanMessage canMessage = new PcanMessage
+			var canMessage = new PcanMessage
 			{
 				ID = arbitrationId,
 				MsgType = MessageType.Extended,
@@ -236,7 +224,7 @@ namespace CyberGear.Control
 				Data = data
 			};
 			// Write the CAN message
-			PcanStatus writeStatus = Api.Write(_channel, canMessage);
+			var writeStatus = Api.Write(_channel, canMessage);
 			if (writeStatus != PcanStatus.OK)
 			{
 				Debug.WriteLine("Failed to send the message.");
@@ -269,9 +257,9 @@ namespace CyberGear.Control
 
 			// Output details of the sent message
 			Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data)}");
-            // 返回接收到的数据
-            return _currentMessageData;
-        }
+			// 返回接收到的数据
+			return _currentMessageData;
+		}
 
 		/// <summary>
 		/// 计算仲裁ID
@@ -299,137 +287,189 @@ namespace CyberGear.Control
 		/// 写入参数
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="param"></param>
-		public IMessageType WriteParam<T>(IParam<T> param, int timeoutMilliseconds) where T : struct, IComparable<T>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
+		/// <param name="param">参数</param>
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType WriteParam<T>(uint masterId, uint motorId, IParam<T> param, int timeoutMilliseconds)
+			where T : struct, IComparable<T>
 		{
 			if (!_isRunning)
-                return new NullMessageType(); 
+				return new NullMessageType();
 			var limitParam = param as ILimitParam<T>;
 			if (limitParam is not null)
 				ValidateParam(limitParam);
 			//发送CAN消息
-			return CanSend(CmdMode.SINGLE_PARAM_WRITE, param.ToArray(), timeoutMilliseconds);
+			return CanSend(masterId, motorId, CmdMode.SINGLE_PARAM_WRITE, param.ToArray(), timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 设置运行模式
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="runMode"></param>
-		public IMessageType SetRunMode(RunMode runMode, int timeoutMilliseconds = 2000)
-			=> WriteParam(new RunModeParam(runMode), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetRunMode(uint masterId, uint motorId, RunMode runMode, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new RunModeParam(runMode), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置转速模式转速指令
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetIqRef(float value, int timeoutMilliseconds = 2000)
-			=> WriteParam(new IqRefParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetIqRef(uint masterId, uint motorId, float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new IqRefParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置转矩限制
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetLimitTorque(float value, int timeoutMilliseconds = 2000)
-			=> WriteParam(new LimitTorqueParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetLimitTorque(uint masterId, uint motorId, float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new LimitTorqueParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置电流的 Kp
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetCurKpParam(float value = (float)0.125, int timeoutMilliseconds = 2000)
-			=> WriteParam(new CurKpParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetCurKpParam(uint masterId, uint motorId, float value = (float)0.125, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new CurKpParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置电流的 Ki
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetCurKiParam(float value = (float)0.0158, int timeoutMilliseconds = 2000)
-			=> WriteParam(new CurKiParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetCurKiParam(uint masterId, uint motorId, float value = (float)0.0158, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new CurKiParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置电流滤波系数
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetCurFiltGainParam(float value = (float)0.1, int timeoutMilliseconds = 2000)
-			=> WriteParam(new CurFiltGainParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetCurFiltGainParam(uint masterId, uint motorId, float value = (float)0.1, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new CurFiltGainParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置位置模式角度指令
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetLocRefParam(float value, int timeoutMilliseconds = 2000)
-			=> WriteParam(new LocRefParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetLocRefParam(uint masterId, uint motorId, float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new LocRefParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置位置模式速度设置
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetLimitSpdParam(float value, int timeoutMilliseconds = 2000)
-			=> WriteParam(new LimitSpdParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetLimitSpdParam(uint masterId, uint motorId, float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new LimitSpdParam(value), timeoutMilliseconds);
 
 		/// <summary>
 		/// 设置速度位置模式电流设置
 		/// </summary>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
 		/// <param name="value"></param>
-		public IMessageType SetLimitCurParam(float value, int timeoutMilliseconds = 2000)
-			=> WriteParam(new LimitCurParam(value), timeoutMilliseconds);
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetLimitCurParam(uint masterId, uint motorId, float value, int timeoutMilliseconds = 2000)
+			=> WriteParam(masterId, motorId, new LimitCurParam(value), timeoutMilliseconds);
 
 		[Obsolete]
 		/// <summary>
 		/// 读取单个参数
 		/// </summary>
-		/// <param name="index">参数的索引。</param>
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
+		/// <param name="index">参数的索引</param>
+		/// <param name="timeoutMilliseconds">超时时间</param>
 		/// <remarks>
 		/// 具体的index请参见官方手册
 		/// </remarks>
-		public IMessageType ReadSingleParam(uint index, int timeoutMilliseconds = 2000)
+		public IMessageType ReadSingleParam(uint masterId, uint motorId, uint index, int timeoutMilliseconds = 2000)
 		{
 			byte[] data_index = BitConverter.GetBytes(index);
 			byte[] date_parameter = { 0, 0, 0, 0 };
 			//组合2个数组
 			byte[] data1 = data_index.Concat(date_parameter).ToArray();
-			return CanSend(CmdMode.SINGLE_PARAM_READ, data1, timeoutMilliseconds);
+			return CanSend(masterId, motorId, CmdMode.SINGLE_PARAM_READ, data1, timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 使能电机
 		/// </summary>
-		public IMessageType EnableMotor(int timeoutMilliseconds = 2000)
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType EnableMotor(uint masterId, uint motorId, int timeoutMilliseconds = 2000)
 		{
 			if (!_isRunning)
 				return new NullMessageType(); ;
-            return CanSend(CmdMode.MOTOR_ENABLE, Array.Empty<byte>(), timeoutMilliseconds);
+			return CanSend(masterId, motorId, CmdMode.MOTOR_ENABLE, Array.Empty<byte>(), timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 停止电机
 		/// </summary>
-		public IMessageType DisableMotor(int timeoutMilliseconds = 2000)
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType DisableMotor(uint masterId, uint motorId, int timeoutMilliseconds = 2000)
 		{
 			if (!_isRunning)
-				return new NullMessageType(); 
-            return CanSend(CmdMode.MOTOR_STOP, new byte[8], timeoutMilliseconds);
+				return new NullMessageType();
+			return CanSend(masterId, motorId, CmdMode.MOTOR_STOP, new byte[8], timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 设置机械零点
 		/// </summary>
-		public IMessageType SetMechanicalZero(int timeoutMilliseconds = 2000)
+		/// <param name="masterId">主控制器id</param>
+		/// <param name="motorId">电机id</param>
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SetMechanicalZero(uint masterId, uint motorId, int timeoutMilliseconds = 2000)
 		{
 			if (!_isRunning)
 				return new NullMessageType();
-			return CanSend(CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 }, timeoutMilliseconds);
+			return CanSend(masterId, motorId, CmdMode.SET_MECHANICAL_ZERO, new byte[] { 1 }, timeoutMilliseconds);
 		}
 
 		/// <summary>
 		/// 运控模式
 		/// </summary>
+		/// <param name="motorId">电机id</param>
 		/// <param name="torque"></param>
 		/// <param name="target_angle"></param>
 		/// <param name="target_velocity"></param>
 		/// <param name="Kp"></param>
 		/// <param name="Kd"></param>
-		public IMessageType SendMotorControlCommand(float torque, float target_angle, float target_velocity, float Kp, float Kd, int timeoutMilliseconds = 2000)
+		/// <param name="timeoutMilliseconds">超时时间</param>
+		public IMessageType SendMotorControlCommand( 
+			uint motorId,
+			float torque, 
+			float target_angle, 
+			float target_velocity, 
+			float Kp, 
+			float Kd, 
+			int timeoutMilliseconds = 2000)
 		{
 			//运控模式下发送电机控制指令。
 			//参数:
@@ -442,13 +482,16 @@ namespace CyberGear.Control
 			//生成29位的仲裁ID的组成部分
 			//uint cmd_mode = CmdModes.MOTOR_CONTROL;
 			uint torque_mapped = Calculate.FToU(torque, -12.0, 12.0);
-			uint data2 = torque_mapped;//data2为力矩值
-									   // 计算仲裁ID，
-			uint arbitrationId = (uint)CmdMode.MOTOR_CONTROL << 24 | data2 << 8 | _motorCANID;
+			//data2为力矩值
+			uint data2 = torque_mapped;
+			// 计算仲裁ID，
+			uint arbitrationId = (uint)CmdMode.MOTOR_CONTROL << 24 | data2 << 8 | motorId;
 
 			// 生成数据区1
-			uint target_angle_mapped = Calculate.FToU(target_angle, -4 * Math.PI, 4 * Math.PI);//目标角度
-			uint target_velocity_mapped = Calculate.FToU(target_velocity, -30.0F, 30.0F);//目标速度
+			//目标角度
+			uint target_angle_mapped = Calculate.FToU(target_angle, -4 * Math.PI, 4 * Math.PI);
+			//目标速度
+			uint target_velocity_mapped = Calculate.FToU(target_velocity, -30.0F, 30.0F);
 			uint Kp_mapped = Calculate.FToU(Kp, 0.0F, 500.0F);//比例增益
 			uint Kd_mapped = Calculate.FToU(Kd, 0.0F, 5.0F);//微分增益
 
@@ -474,36 +517,36 @@ namespace CyberGear.Control
 			}
 			// Output details of the sent message
 			//Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data1)}");
-            bool isReplyOK = false;
-            var t = new Thread(_ =>
-            {
-                Thread.Sleep(timeoutMilliseconds);
-                // 已经完成后, 不要干涉后续的 mre
-                if (!isReplyOK)
-                    _mre.Set();
-            })
-            { IsBackground = true };
-            t.Start();
+			bool isReplyOK = false;
+			var t = new Thread(_ =>
+			{
+				Thread.Sleep(timeoutMilliseconds);
+				// 已经完成后, 不要干涉后续的 mre
+				if (!isReplyOK)
+					_mre.Set();
+			})
+			{ IsBackground = true };
+			t.Start();
 
-            _mre.Reset();
-            _mre.WaitOne();
+			_mre.Reset();
+			_mre.WaitOne();
 
-            // 等待线程正在运行, 没有超时
-            if (t.ThreadState == (System.Threading.ThreadState.WaitSleepJoin | System.Threading.ThreadState.Background))
-            {
-                isReplyOK = true;
-            }
-            // 等待线程结束, 已经超时
-            else
-            {
-                throw new TimeoutException("reply timeout");
-            }
+			// 等待线程正在运行, 没有超时
+			if (t.ThreadState == (System.Threading.ThreadState.WaitSleepJoin | System.Threading.ThreadState.Background))
+			{
+				isReplyOK = true;
+			}
+			// 等待线程结束, 已经超时
+			else
+			{
+				throw new TimeoutException("reply timeout");
+			}
 
-            // Output details of the sent message
-            Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data1)}");
-            // 返回接收到的数据
-            return _currentMessageData;
-        }
+			// Output details of the sent message
+			Debug.WriteLine($"Sent message with ID {arbitrationId:X}, data: {BitConverter.ToString(data1)}");
+			// 返回接收到的数据
+			return _currentMessageData;
+		}
 
 		protected virtual void Dispose(bool disposing)
 		{
@@ -525,7 +568,5 @@ namespace CyberGear.Control
 			Dispose(disposing: true);
 			GC.SuppressFinalize(this);
 		}
-
-
-    }
+	}
 }
