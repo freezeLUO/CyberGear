@@ -44,5 +44,11 @@ namespace CyberGear.Control
 				Value = dataSpan[4..8].ToArray()
 			};
 		}
+
+		public override string ToString()
+		{
+			return
+				$"{nameof(MotorCanId)}: {MotorCanId}, {nameof(MasterCanId)}: {MasterCanId}, {nameof(Index)}: {Index}, {nameof(Value)}: {Value}";
+		}
 	}
 }

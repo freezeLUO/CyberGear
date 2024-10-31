@@ -90,6 +90,12 @@ namespace CyberGear.Control
 			};
 		}
 
+		public override string ToString()
+		{
+			return
+				$"{nameof(MasterCanId)}: {MasterCanId}, {nameof(ErrorMessage)}: {ErrorMessage}, {nameof(HALLError)}: {HALLError}, {nameof(MagneticError)}: {MagneticError}, {nameof(Overheating)}: {Overheating}, {nameof(Overcurrent)}: {Overcurrent}, {nameof(Undervoltage)}: {Undervoltage}, {nameof(Mode)}: {Mode}, {nameof(Angle)}: {Angle}, {nameof(AngularVelocity)}: {AngularVelocity}, {nameof(Torque)}: {Torque}, {nameof(Temp)}: {Temp}";
+		}
+
 		/// <summary>
 		/// 比例转换
 		/// </summary>
