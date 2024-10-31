@@ -18,29 +18,39 @@ namespace CyberGear.Control
 		/// </summary>
 		public Bitrate Bitrate { get; set; } = Bitrate.Pcan1000;
 
-		public readonly List<uint> MotorIds = new List<uint>();
+		public readonly List<uint> MotorCanIds = new List<uint>();
 
+		/// <summary>
+		/// 新增电机
+		/// </summary>
+		/// <param name="motorId">电机编号</param>
+		/// <exception cref="ArgumentException"></exception>
 		public void AddMotor(uint motorId)
 		{
-			for (int i = 0; i < MotorIds.Count; i++)
+			for (int i = 0; i < MotorCanIds.Count; i++)
 			{
-				if (MotorIds[i] == motorId)
-					throw new ArgumentException("exist same motor id");
+				if (MotorCanIds[i] == motorId)
+					throw new ArgumentException("exist same motor can id");
 			}
-			MotorIds.Add(motorId);
+			MotorCanIds.Add(motorId);
 		}
 
-		public void AddMotors(uint[] motorIds)
+		/// <summary>
+		/// 新增电机
+		/// </summary>
+		/// <param name="motorCanIds">电机编号</param>
+		/// <exception cref="ArgumentException"></exception>
+		public void AddMotors(uint[] motorCanIds)
 		{
-			for (int i = 0; i < motorIds.Length; i++)
+			for (int i = 0; i < motorCanIds.Length; i++)
 			{
-				for (int j = 0; i < MotorIds.Count; j++)
+				for (int j = 0; i < MotorCanIds.Count; j++)
 				{
-					if (motorIds[i] == MotorIds[j])
-						throw new ArgumentException("exist same motor id");
+					if (motorCanIds[i] == MotorCanIds[j])
+						throw new ArgumentException("exist same motor can id");
 				}
 			}
-			MotorIds.AddRange(motorIds);
+			MotorCanIds.AddRange(motorCanIds);
 		}
 	}
 }
