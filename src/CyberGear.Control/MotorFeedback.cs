@@ -21,27 +21,27 @@ namespace CyberGear.Control
 		/// <summary>
 		/// HALL 编码故障
 		/// </summary>
-        public bool HALLError { get; set; }
+		public bool HALLError { get; set; }
 
-        /// <summary>
-        /// 磁编码故障
-        /// </summary>
-        public byte MagneticError { get; init; }
+		/// <summary>
+		/// 磁编码故障
+		/// </summary>
+		public byte MagneticError { get; init; }
 
 		/// <summary>
 		/// 过温
 		/// </summary>
-        public bool Overheating { get; init; }
+		public bool Overheating { get; init; }
 
 		/// <summary>
 		/// 过流
 		/// </summary>
-        public bool Overcurrent { get; init; }
+		public bool Overcurrent { get; init; }
 
 		/// <summary>
 		/// 欠压
 		/// </summary>
-        public bool Undervoltage { get; init; }
+		public bool Undervoltage { get; init; }
 
 		/// <summary>
 		/// 模式
@@ -49,12 +49,12 @@ namespace CyberGear.Control
 		/// 1 - Cali
 		/// 2 - Motor
 		/// </summary>
-        public int Mode { get; init; }
+		public int Mode { get; init; }
 
-        /// <summary>
-        /// 当前角度
-        /// </summary>
-        public double Angle { get; init; }
+		/// <summary>
+		/// 当前角度
+		/// </summary>
+		public double Angle { get; init; }
 
 		/// <summary>
 		/// 当前角速度

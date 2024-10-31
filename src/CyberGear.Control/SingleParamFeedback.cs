@@ -16,13 +16,13 @@ namespace CyberGear.Control
 		/// <summary>
 		/// 目标电机 can id
 		/// </summary>
-        public uint MotorCanId { get; init; }
+		public uint MotorCanId { get; init; }
 
 		/// <summary>
 		/// 主机 can id
 		/// </summary>
-        public uint MasterCanId { get; init; }
-		
+		public uint MasterCanId { get; init; }
+
 		/// <summary>
 		/// 序号
 		/// </summary>
@@ -31,7 +31,7 @@ namespace CyberGear.Control
 		/// <summary>
 		/// 参考数据
 		/// </summary>
-        public byte[] Value { get; set; }
+		public byte[] Value { get; set; }
 
 		public static SingleParamFeedback Parse(PcanMessage pcanMessage)
 		{
@@ -39,7 +39,7 @@ namespace CyberGear.Control
 			return new SingleParamFeedback
 			{
 				MasterCanId = pcanMessage.ID & 0xFF,
-				MotorCanId = (pcanMessage.ID >>8) & 0xFF,
+				MotorCanId = (pcanMessage.ID >> 8) & 0xFF,
 				Index = BinaryPrimitives.ReadUInt16BigEndian(dataSpan[0..2]),
 				Value = dataSpan[4..8].ToArray()
 			};
