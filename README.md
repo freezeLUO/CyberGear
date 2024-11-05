@@ -1,14 +1,41 @@
-# 已经完全重构啦，新版本使用独立线程与异步来接受消息，更适合控制频率高的场景，请到Pre分支查看！！！
-# 已经完全重构啦，新版本使用独立线程与异步来接受消息，更适合控制频率高的场景，请到Pre分支查看！！！
-# CyberGear
-小米Cybergear电机C#开发  
-使用PCAN-USB请去PEAK官网下载驱动：https://peak-system.com.cn/driver/  
-安装PEAK公司的Peak.Can.Basic  
-using Peak.Can.Basic  
-B站视频:   
-[https://www.bilibili.com/video/BV1Xv411F7fA/?vd_source=bf6516ab99e32c1947abd6d5604f57dc](https://www.bilibili.com/video/BV1wQ3Ce7EBw/)   
+# ⚙ CyberGear
 
-参考：  
-https://github.com/Tony607/Cybergear  
-https://docs.peak-system.com/API/PCAN-Basic.Net/html/52acafbe-cf02-f99b-ad12-0942060b0289.htm  
-https://blog.csdn.net/qq_35003234/article/details/134215883
+This repo is a .Net implementation of CyberGear.
+
+## 👋 How to use?
+
+Using the builder pattern to build ``CanBus``.
+
+```csharp
+var builder = CanBus.CreateBuilder(SlotType.Usb, 1);
+builder.Configure(opt =>
+{
+    // set can bitrate, which default value is Pcan1000
+	opt.Bitrate = Bitrate.Pcan1000;
+    // set masteridd which default value is 0
+    opt.MasterId = 0;
+    // add motor can id range
+    opt.AddMotors(new uint[] { 2, 127 });
+});
+CanBus can = builder.Build();
+```
+
+Where are the motors?
+
+```csharp
+var motor0 = can.Motors[0];
+var motor1 = can.Motors[1];
+var motorFeedback = await motor0.SetMechanicalZeroAsync();
+```
+
+## 👉 Matters
+
++ Please use a PCAN compatible device
++ [PEAK official website driver](https://peak-system.com.cn/driver/)  
++ Download ``Peak.Can.Basic(4.8.0.830) `` through ``nurget``
++ Example: ``CyberGearPlayground``
+
+## 📒 Referrence：  
++ [PEAK Official Documentation](https://docs.peak-system.com/API/PCAN-Basic.Net/html/52acafbe-cf02-f99b-ad12-0942060b0289.htm ) 
+
++ [Introductory video](https://www.bilibili.com/video/BV1wQ3Ce7EBw/)
