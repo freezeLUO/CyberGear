@@ -62,19 +62,27 @@ namespace CyberGear.Control
 			=> await WriteParamAsync(new RunModeParam(runMode), timeoutMilliseconds);
 
 		/// <summary>
-		/// 设置转速模式转速指令
+		/// 设置电流模式Iq指令
 		/// </summary>
 		/// <param name="value"></param>
 		/// <param name="timeoutMilliseconds">超时时间</param>
 		public async Task<MotorFeedback> SetIqRefAsync(float value, int timeoutMilliseconds = 2000)
 			=> await WriteParamAsync(new IqRefParam(value), timeoutMilliseconds);
 
-		/// <summary>
-		/// 设置转矩限制
-		/// </summary>
-		/// <param name="value"></param>
-		/// <param name="timeoutMilliseconds">超时时间</param>
-		public async Task<MotorFeedback> SetLimitTorqueAsync(float value, int timeoutMilliseconds = 2000)
+        /// <summary>
+        /// 设置速度模式速度指令
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="timeoutMilliseconds">超时时间</param>
+        public async Task<MotorFeedback> SetSpdRefParamAsync(float value, int timeoutMilliseconds = 2000)
+            => await WriteParamAsync(new SpdRefParam(value), timeoutMilliseconds);
+
+        /// <summary>
+        /// 设置转矩限制
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="timeoutMilliseconds">超时时间</param>
+        public async Task<MotorFeedback> SetLimitTorqueAsync(float value, int timeoutMilliseconds = 2000)
 			=> await WriteParamAsync(new LimitTorqueParam(value), timeoutMilliseconds);
 
 		/// <summary>

@@ -12,8 +12,8 @@ namespace CyberGear.Control.Params
 	/// </summary>
 	public readonly struct IqRefParam : ILimitParam<float>
 	{
-		public float MaxValue { get; init; } = 27;
-		public float MinValue { get; init; } = -27;
+		public float MaxValue { get; init; } = 23;
+		public float MinValue { get; init; } = -23;
 		public ushort Index { get; init; } = 0X7006;
 		public float Value { get; init; }
 
