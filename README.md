@@ -28,6 +28,19 @@ var motor1 = can.Motors[1];
 var motorFeedback = await motor0.SetMechanicalZeroAsync();
 ```
 
+## 🎨 3D Models
+
+This repository includes SOLIDWORKS 2022 3D models and STL files for the CyberGear motor:
+
++ **Location**: [Cybergear model(SOLIDWORKS 2022 & STL)/](Cybergear%20model(SOLIDWORKS%202022%20&%20STL)/)
++ **Files**:
+  - `Cybergear.SLDASM` - Assembly file
+  - `motor.SLDPRT` - Motor part
+  - `rotor.SLDPRT` - Rotor part
+  - STL files for 3D printing
+
+These models can be used for mechanical design, integration planning, and 3D printing.
+
 ## 👉 Matters
 
 + Please use a PCAN compatible device
